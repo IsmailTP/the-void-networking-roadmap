@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO METADATA -->
+    <meta name="description"
+        content="Advanced Firewall Simulation: Experience real-time packet filtering, rule evaluation, and traffic analysis in a professional network security lab.">
+    <meta name="author" content="The Void">
+
+    <title>The Void | Virtual Lab: Advanced Firewall</title>
+
+    <!-- Google Fonts & Frameworks -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* --- THE VOID CORE THEME --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #0d1117;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .terminal-font {
+            font-family: var(--font-code);
+        }
+
+        /* --- UI COMPONENTS --- */
+        .top-nav {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        /* --- DASHBOARD ELEMENTS --- */
+        .glass-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .packet-row {
+            transition: background 0.2s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .packet-row:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-input);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.2;
+        }
+
+        input,
+        select {
+            background: var(--bg-input) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text-main) !important;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <div class="scanline"></div>
+
+    <!-- Navigation -->
+    <nav class="top-nav">
+        <a href="/modules/08-devices.html" class="back-link">← Back to Module 08</a>
+        <div class="flex items-center gap-4">
+            <div class="text-right hidden md:block">
+                <div class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Uptime</div>
+                <div id="uptime" class="text-xs font-mono text-emerald-500">00:00:00</div>
+            </div>
+            <div class="h-8 w-[1px] bg-slate-700 hidden md:block"></div>
+            <span class="text-xs font-mono text-blue-400">NETGUARD_OS v4.0</span>
+        </div>
+    </nav>
+
+    <!-- Main Dashboard -->
+    <main class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden">
+
+        <!-- Left Sidebar: Rules & Controls -->
+        <aside class="w-full md:w-[380px] flex flex-col gap-4 overflow-y-auto">
+
+            <!-- System Stats -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">Allowed</div>
+                    <div id="allowed-count" class="text-2xl font-mono text-emerald-500 font-bold">0</div>
+                </div>
+                <div class="glass-panel p-4 text-center">
+                    <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">Blocked</div>
+                    <div id="blocked-count" class="text-2xl font-mono text-rose-500 font-bold">0</div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="glass-panel p-5">
+                <h2 class="text-xs font-bold text-slate-300 mb-4 flex items-center gap-2 uppercase tracking-widest">
+                    <i class="fa-solid fa-sliders text-blue-400"></i> Sim Controls
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-[10px] mb-2 font-mono">
+                            <span class="text-slate-500">INTENSITY</span>
+                            <span id="intensity-val" class="text-blue-400">NORMAL</span>
+                        </div>
+                        <input type="range" id="intensity-slider" min="1" max="100" value="20"
+                            class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="toggle-sim"
+                            class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-slate-900 py-2 rounded text-xs font-bold transition-all">
+                            <i class="fa-solid fa-play mr-1"></i> START SIM
+                        </button>
+                        <button id="clear-logs"
+                            class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded text-xs font-bold transition-all">
+                            <i class="fa-solid fa-trash mr-1"></i> CLEAR
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rules Engine -->
+            <div class="glass-panel p-5 flex-1 flex flex-col min-h-[300px]">
+                <h2 class="text-xs font-bold text-slate-300 mb-4 flex items-center gap-2 uppercase tracking-widest">
+                    <i class="fa-solid fa-gavel text-purple-400"></i> Rules Engine
+                </h2>
+
+                <div class="space-y-2 mb-4">
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="rule-type"
+                            class="text-[10px] rounded p-2 focus:ring-1 focus:ring-blue-500 outline-none">
+                            <option value="ip">IP Address</option>
+                            <option value="port">Port</option>
+                            <option value="protocol">Protocol</option>
+                        </select>
+                        <select id="rule-action"
+                            class="text-[10px] rounded p-2 focus:ring-1 focus:ring-blue-500 outline-none">
+                            <option value="block">BLOCK</option>
+                            <option value="allow">ALLOW</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="rule-value" placeholder="192.168.1.1 or 80"
+                            class="flex-1 text-[10px] rounded p-2 outline-none">
+                        <button id="add-rule-btn"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded text-xs font-bold">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="rules-container" class="flex-1 overflow-y-auto space-y-2 font-mono">
+                    <!-- Rules dynamically injected -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Side: Traffic Logs & Graph -->
+        <main class="flex-1 flex flex-col gap-4 overflow-hidden">
+
+            <!-- Graph Area -->
+            <div class="glass-panel p-4 h-48 relative">
+                <div class="absolute top-4 left-4 z-10 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+                    Live Traffic Flow</div>
+                <canvas id="trafficChart"></canvas>
+            </div>
+
+            <!-- Log Area -->
+            <div class="glass-panel flex-1 flex flex-col overflow-hidden">
+                <div
+                    class="bg-slate-900/50 p-3 border-b border-slate-700 grid grid-cols-12 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    <div class="col-span-2">Time</div>
+                    <div class="col-span-3">Source</div>
+                    <div class="col-span-2">Port</div>
+                    <div class="col-span-2">Proto</div>
+                    <div class="col-span-3">Action</div>
+                </div>
+                <div id="packet-log" class="flex-1 overflow-y-auto font-mono text-[11px]">
+                    <div class="h-full flex items-center justify-center text-slate-700 italic">
+                        Awaiting Ingress Traffic...
+                    </div>
+                </div>
+            </div>
+        </main>
+
+    </main>
+
+    <script>
+        // --- State Management ---
+        let isRunning = false;
+        let trafficInterval;
+        let packetId = 0;
+        let allowedCount = 0;
+        let blockedCount = 0;
+        let startTime = Date.now();
+        let chartInstance = null;
+        let intensity = 20;
+        const MAX_LOG_ENTRIES = 40;
+
+        let activeRules = [
+            { id: '1', type: 'port', value: '4444', action: 'block' },
+            { id: '2', type: 'ip', value: '192.168.1.100', action: 'block' },
+            { id: '3', type: 'protocol', value: 'ICMP', action: 'block' }
+        ];
+
+        // --- Generators ---
+        const PROTOCOLS = ['TCP', 'UDP', 'ICMP', 'HTTP', 'HTTPS', 'SSH'];
+        const COMMON_PORTS = [80, 443, 22, 21, 53, 4444, 3389];
+
+        const getRandomIP = () => Array(4).fill(0).map(() => Math.floor(Math.random() * 256)).join('.');
+
+        function generatePacket() {
+            let port = Math.random() > 0.6 ? COMMON_PORTS[Math.floor(Math.random() * COMMON_PORTS.length)] : Math.floor(Math.random() * 65535);
+            let sourceIP = Math.random() > 0.9 ? '192.168.1.100' : getRandomIP();
+            return {
+                timestamp: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+                source: sourceIP,
+                port: port.toString(),
+                protocol: PROTOCOLS[Math.floor(Math.random() * PROTOCOLS.length)]
+            };
+        }
+
+        // --- Logic ---
+        function checkRules(packet) {
+            let action = 'allow';
+            for (const rule of activeRules) {
+                let match = false;
+                if (rule.type === 'ip' && packet.source === rule.value) match = true;
+                if (rule.type === 'port' && packet.port === rule.value) match = true;
+                if (rule.type === 'protocol' && packet.protocol.toUpperCase() === rule.value.toUpperCase()) match = true;
+                if (match) { action = rule.action; break; }
+            }
+            return action;
+        }
+
+        function addPacketToLog(packet, action) {
+            const logContainer = document.getElementById('packet-log');
+            if (packetId === 0) logContainer.innerHTML = '';
+            packetId++;
+
+            const isBlocked = action === 'block';
+            const row = document.createElement('div');
+            row.className = `packet-row grid grid-cols-12 p-3 ${isBlocked ? 'text-rose-400' : 'text-slate-300'}`;
+            row.innerHTML = `
+                <div class="col-span-2 text-slate-600">${packet.timestamp}</div>
+                <div class="col-span-3 truncate">${packet.source}</div>
+                <div class="col-span-2 text-blue-400">${packet.port}</div>
+                <div class="col-span-2 text-purple-400">${packet.protocol}</div>
+                <div class="col-span-3 font-bold uppercase">${isBlocked ? '<i class="fa-solid fa-ban mr-2"></i>Drop' : '<i class="fa-solid fa-check mr-2"></i>Pass'}</div>
+            `;
+            logContainer.insertBefore(row, logContainer.firstChild);
+            if (logContainer.children.length > MAX_LOG_ENTRIES) logContainer.removeChild(logContainer.lastChild);
+
+            if (isBlocked) {
+                blockedCount++;
+                document.getElementById('blocked-count').innerText = blockedCount;
+            } else {
+                allowedCount++;
+                document.getElementById('allowed-count').innerText = allowedCount;
+            }
+            updateChartData(isBlocked);
+        }
+
+        // --- Chart ---
+        function initChart() {
+            const ctx = document.getElementById('trafficChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(20).fill(''),
+                    datasets: [
+                        { label: 'Pass', data: Array(20).fill(0), borderColor: '#22c55e', borderWidth: 2, tension: 0.4, pointRadius: 0, fill: true, backgroundColor: 'rgba(34, 197, 94, 0.05)' },
+                        { label: 'Drop', data: Array(20).fill(0), borderColor: '#ef4444', borderWidth: 2, tension: 0.4, pointRadius: 0, fill: true, backgroundColor: 'rgba(239, 68, 68, 0.05)' }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, animation: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { display: false } },
+                        x: { display: false }
+                    }
+                }
+            });
+        }
+
+        let allowBuffer = 0, blockBuffer = 0;
+        function updateChartData(isBlocked) { isBlocked ? blockBuffer++ : allowBuffer++; }
+
+        setInterval(() => {
+            if (!isRunning) return;
+            chartInstance.data.datasets[0].data.shift();
+            chartInstance.data.datasets[0].data.push(allowBuffer);
+            chartInstance.data.datasets[1].data.shift();
+            chartInstance.data.datasets[1].data.push(blockBuffer);
+            chartInstance.update();
+            allowBuffer = 0; blockBuffer = 0;
+        }, 1000);
+
+        // --- UI Events ---
+        document.getElementById('toggle-sim').addEventListener('click', function () {
+            isRunning = !isRunning;
+            this.innerHTML = isRunning ? '<i class="fa-solid fa-stop mr-1"></i> STOP SIM' : '<i class="fa-solid fa-play mr-1"></i> START SIM';
+            this.classList.toggle('bg-emerald-600');
+            this.classList.toggle('bg-rose-600');
+            if (isRunning) {
+                const start = () => {
+                    const ms = 1500 - (intensity * 14.5);
+                    trafficInterval = setTimeout(() => {
+                        const p = generatePacket();
+                        addPacketToLog(p, checkRules(p));
+                        if (isRunning) start();
+                    }, Math.max(50, ms));
+                };
+                start();
+            } else { clearTimeout(trafficInterval); }
+        });
+
+        document.getElementById('intensity-slider').addEventListener('input', (e) => {
+            intensity = e.target.value;
+            let label = "NORMAL";
+            if (intensity > 70) label = "HIGH";
+            if (intensity > 90) label = "DDoS LEVEL";
+            document.getElementById('intensity-val').innerText = label;
+        });
+
+        document.getElementById('clear-logs').addEventListener('click', () => {
+            document.getElementById('packet-log').innerHTML = '';
+            packetId = 0; allowedCount = 0; blockedCount = 0;
+            document.getElementById('allowed-count').innerText = '0';
+            document.getElementById('blocked-count').innerText = '0';
+        });
+
+        function renderRules() {
+            const container = document.getElementById('rules-container');
+            container.innerHTML = activeRules.map(rule => `
+                <div class="flex items-center justify-between bg-slate-800/50 p-2 rounded border border-slate-700 text-[10px]">
+                    <span class="${rule.action === 'block' ? 'text-rose-500' : 'text-emerald-500'} font-bold uppercase">${rule.action}</span>
+                    <span class="text-slate-400">${rule.type.toUpperCase()}: <span class="text-slate-200">${rule.value}</span></span>
+                    <button onclick="deleteRule('${rule.id}')" class="text-slate-600 hover:text-rose-500"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('add-rule-btn').addEventListener('click', () => {
+            const val = document.getElementById('rule-value').value.trim();
+            if (!val) return;
+            activeRules.unshift({ id: Date.now().toString(), type: document.getElementById('rule-type').value, action: document.getElementById('rule-action').value, value: val });
+            document.getElementById('rule-value').value = '';
+            renderRules();
+        });
+
+        window.deleteRule = (id) => { activeRules = activeRules.filter(r => r.id !== id); renderRules(); };
+
+        setInterval(() => {
+            const diff = Date.now() - startTime;
+            document.getElementById('uptime').innerText = new Date(diff).toISOString().substr(11, 8);
+        }, 1000);
+
+        initChart();
+        renderRules();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO METADATA -->
+    <meta name="description"
+        content="Interactive Firewall Simulation: Visualize how firewalls evaluate traffic based on port, protocol, and security rules.">
+    <meta name="author" content="The Void">
+
+    <title>The Void | Virtual Lab: Firewall Logic</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <style>
+        /* --- CORE THEME --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #0d1117;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 1000;
+        }
+
+        .reading-bar {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px 60px;
+        }
+
+        .top-nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        header {
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            font-family: var(--font-code);
+            text-transform: uppercase;
+        }
+
+        /* --- LAYOUT --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 40px;
+        }
+
+        /* --- FIREWALL RULEBASE TERMINAL --- */
+        .terminal {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: var(--font-code);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-header {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .red {
+            background: #ff5f56;
+        }
+
+        .yellow {
+            background: #ffbd2e;
+        }
+
+        .green {
+            background: #27c93f;
+        }
+
+        .rule-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            color: #c9d1d9;
+        }
+
+        .rule-table th {
+            text-align: left;
+            color: var(--warning);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+
+        .rule-table td {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .action-allow {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .action-deny {
+            color: var(--danger);
+            font-weight: bold;
+        }
+
+        .checking-row {
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        /* --- CANVAS AREA --- */
+        .sim-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        #networkCanvas {
+            width: 100%;
+            height: 500px;
+            background: #0d1117;
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 100%;
+            background: var(--warning);
+            box-shadow: 0 0 15px var(--warning);
+            display: none;
+            z-index: 5;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 5px 15px;
+            border-radius: 50px;
+            border: 1px solid var(--border);
+            font-family: var(--font-code);
+            font-size: 0.7rem;
+            color: var(--warning);
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            margin-top: 25px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .btn-send {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid var(--purple);
+            color: var(--purple);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-send:hover {
+            background: var(--purple);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-malicious {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-malicious:hover {
+            background: var(--danger);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+
+        @media (max-width: 900px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="reading-progress">
+        <div class="reading-bar"></div>
+    </div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="/modules/08-devices.html" class="back-link">← Back to Module 08</a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">V-LAB 08C</span>
+        </nav>
+
+        <header>
+            <span class="meta-badge">Ingress Filtering Lab</span>
+            <h1>Firewall Rule Evaluation</h1>
+            <p style="color: var(--text-muted);">Watch how a <strong>Stateful Firewall</strong> inspects packet headers
+                and applies a Default Deny policy.</p>
+        </header>
+
+        <div class="layout-grid">
+            <!-- RULEBASE -->
+            <aside class="sidebar">
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                        <span
+                            style="margin-left: 10px; font-size: 0.7rem; color: var(--text-muted);">FW_POLICY_v4.2</span>
+                    </div>
+                    <table class="rule-table">
+                        <thead>
+                            <tr>
+                                <th>PRIO</th>
+                                <th>SERVICE</th>
+                                <th>PORT</th>
+                                <th>ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ruleBody">
+                            <tr id="rule-80">
+                                <td>10</td>
+                                <td>HTTP</td>
+                                <td>80</td>
+                                <td class="action-allow">ALLOW</td>
+                            </tr>
+                            <tr id="rule-443">
+                                <td>20</td>
+                                <td>HTTPS</td>
+                                <td>443</td>
+                                <td class="action-allow">ALLOW</td>
+                            </tr>
+                            <tr id="rule-22">
+                                <td>30</td>
+                                <td>SSH</td>
+                                <td>22</td>
+                                <td class="action-deny">DENY</td>
+                            </tr>
+                            <tr id="rule-default">
+                                <td>99</td>
+                                <td>ANY</td>
+                                <td>*</td>
+                                <td class="action-deny">DENY</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div
+                        style="margin-top:auto; font-size:0.7rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">
+                        * Default Policy: Implicit Deny
+                    </div>
+                </div>
+            </aside>
+
+            <!-- SIMULATION -->
+            <main>
+                <div class="sim-container">
+                    <div class="status-badge">FIREWALL_STATE: <span id="simStatus">LISTENING</span></div>
+                    <div class="scan-line" id="scanLine"></div>
+                    <canvas id="networkCanvas"></canvas>
+                </div>
+
+                <div class="controls">
+                    <button class="btn-send" onclick="sendPacket(80, 'WEB')">Send Web (80)</button>
+                    <button class="btn-send" onclick="sendPacket(22, 'SSH')">Send SSH (22)</button>
+                    <button class="btn-send btn-malicious" onclick="sendPacket(666, 'ATTACK')">Send Attack
+                        (666)</button>
+                </div>
+
+                <div
+                    style="margin-top: 30px; padding: 20px; background: rgba(245, 158, 11, 0.05); border: 1px dashed var(--warning); border-radius: var(--radius);">
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">
+                        <strong style="color: var(--warning);">Concept:</strong> Notice how the firewall stops
+                        inspecting rules as soon as it finds a match. This is called "Top-Down" processing.
+                    </p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('networkCanvas');
+        const ctx = canvas.getContext('2d');
+        const scanLine = document.getElementById('scanLine');
+        const statusLabel = document.getElementById('simStatus');
+
+        let width, height;
+        let packets = [];
+
+        const nodes = {
+            internet: { x: 0.15, y: 0.5, icon: "\uf0c2", label: "UNTRUSTED", color: "#94a3b8" },
+            firewall: { x: 0.5, y: 0.5, icon: "\uf3ed", label: "FIREWALL", color: "#f59e0b" },
+            internal: { x: 0.85, y: 0.5, icon: "\uf015", label: "TRUSTED_LAN", color: "#22c55e" }
+        };
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = 500;
+            width = canvas.width;
+            height = canvas.height;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Perimeter Line
+            ctx.setLineDash([10, 5]);
+            ctx.strokeStyle = "#334155";
+            ctx.beginPath();
+            ctx.moveTo(width * 0.5, 50);
+            ctx.lineTo(width * 0.5, 450);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw Nodes
+            Object.values(nodes).forEach(node => {
+                const x = width * node.x, y = height * node.y;
+                ctx.fillStyle = "#0d1117"; ctx.beginPath(); ctx.arc(x, y, 35, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = node.color; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = node.color; ctx.font = '900 24px "Font Awesome 6 Free"';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(node.icon, x, y);
+                ctx.fillStyle = "#94a3b8"; ctx.font = '11px "JetBrains Mono"'; ctx.fillText(node.label, x, y + 55);
+            });
+
+            // Update/Draw Packets
+            for (let i = packets.length - 1; i >= 0; i--) {
+                const p = packets[i];
+                ctx.fillStyle = p.color; ctx.shadowBlur = 10; ctx.shadowColor = p.color;
+
+                if (p.shattered) {
+                    this.drawShatter(p);
+                } else {
+                    ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = "#fff"; ctx.font = 'bold 9px monospace';
+                    ctx.fillText(p.port, p.x, p.y - 15);
+                }
+                ctx.shadowBlur = 0;
+
+                if (p.update()) packets.splice(i, 1);
+            }
+            requestAnimationFrame(draw);
+        }
+
+        function drawShatter(p) {
+            for (let j = 0; j < 5; j++) {
+                ctx.beginPath();
+                ctx.arc(p.x + (Math.random() - 0.5) * 20, p.y + (Math.random() - 0.5) * 20, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class Packet {
+            constructor(port, label) {
+                this.port = port;
+                this.label = label;
+                this.x = width * nodes.internet.x;
+                this.y = height * nodes.internet.y;
+                this.prog = 0;
+                this.stage = 0; // 0: To FW, 1: Inspecting, 2: To LAN
+                this.color = "#8b5cf6";
+                this.shattered = false;
+            }
+
+            update() {
+                if (this.stage === 0) {
+                    this.prog += 0.015;
+                    this.x = (width * nodes.internet.x) + (width * 0.5 - width * nodes.internet.x) * this.prog;
+                    if (this.prog >= 1) { this.stage = 1; this.prog = 0; this.inspect(); }
+                } else if (this.stage === 2) {
+                    this.prog += 0.015;
+                    this.x = (width * 0.5) + (width * nodes.internal.x - width * 0.5) * this.prog;
+                    if (this.prog >= 1) return true;
+                }
+                return this.shattered && Math.random() > 0.9; // Cleanup shattered packets
+            }
+
+            inspect() {
+                statusLabel.innerText = "INSPECTING PORT " + this.port;
+                scanLine.style.display = "block";
+
+                const ruleRows = {
+                    80: "rule-80",
+                    443: "rule-443",
+                    22: "rule-22"
+                };
+
+                let matchRow = ruleRows[this.port] || "rule-default";
+                let action = (this.port === 80 || this.port === 443) ? "ALLOW" : "DENY";
+
+                // Visual table highlight
+                document.getElementById(matchRow).classList.add('checking-row');
+
+                setTimeout(() => {
+                    scanLine.style.display = "none";
+                    document.getElementById(matchRow).classList.remove('checking-row');
+
+                    if (action === "ALLOW") {
+                        statusLabel.innerText = "PERMITTED";
+                        this.color = "#22c55e";
+                        this.stage = 2;
+                    } else {
+                        statusLabel.innerText = "DROPPED (POLICY)";
+                        this.color = "#ef4444";
+                        this.shattered = true;
+                        setTimeout(() => { packets = packets.filter(p => p !== this); }, 500);
+                    }
+                }, 1500);
+            }
+        }
+
+        function sendPacket(port, label) {
+            if (packets.length > 0) return;
+            packets.push(new Packet(port, label));
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+
+</html>

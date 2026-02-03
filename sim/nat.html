@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | NAT Simulator</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent-blue: #3b82f6;   
+            --accent-purple: #8b5cf6; 
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;  
+            --border: #334155;
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+        }
+        header h1 { font-family: var(--font-head); font-size: 1.2rem; color: var(--accent-blue); display: flex; align-items: center; gap: 10px; }
+        .reset-btn {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent-amber);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-family: var(--font-code);
+        }
+
+        /* --- SIMULATION CANVAS --- */
+        #sim-viewport {
+            flex: 1;
+            position: relative;
+            background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            overflow: hidden;
+        }
+
+        /* Network Zones */
+        .zone-label {
+            position: absolute;
+            top: 15px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            opacity: 0.4;
+        }
+
+        .divider {
+            position: absolute;
+            left: 40%;
+            top: 0;
+            bottom: 0;
+            border-left: 2px dashed var(--border);
+            z-index: 1;
+        }
+
+        /* Nodes */
+        .node {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+
+        .node h4 { font-size: 0.8rem; margin-bottom: 5px; }
+        .node .ip { font-family: var(--font-code); font-size: 0.7rem; color: var(--accent-blue); background: var(--bg-body); padding: 2px 6px; border-radius: 4px; }
+        
+        .router-node { border: 2px solid var(--accent-purple); width: 220px; }
+        .server-node { background: #0f172a; border: 1px solid var(--border); width: 140px; }
+
+        .btn-send {
+            margin-top: 10px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Packets */
+        .packet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            box-shadow: 0 0 15px var(--accent-blue);
+            z-index: 20;
+            transform: translate(-50%, -50%);
+        }
+
+        .packet-tooltip {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border);
+            padding: 5px 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            font-family: var(--font-code);
+            font-size: 0.6rem;
+            color: var(--text-main);
+            pointer-events: none;
+        }
+
+        /* --- DATA PANEL (BOTTOM) --- */
+        #data-panel {
+            height: 250px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            z-index: 100;
+        }
+
+        .table-area { padding: 20px; overflow-y: auto; }
+        .table-area h3 { font-size: 0.8rem; margin-bottom: 15px; color: var(--accent-purple); text-transform: uppercase; }
+
+        table { width: 100%; border-collapse: collapse; font-family: var(--font-code); font-size: 0.75rem; }
+        th { text-align: left; padding: 10px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .log-area { 
+            background: #0d1117; 
+            border-left: 1px solid var(--border); 
+            padding: 15px;
+            font-family: var(--font-code);
+            font-size: 0.7rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .log-entry { margin-bottom: 5px; line-height: 1.4; }
+        .log-time { color: #475569; margin-right: 8px; }
+        .log-msg.action { color: var(--accent-amber); }
+        .log-msg.success { color: var(--accent-emerald); }
+
+        /* SVG Connections */
+        #svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><span>🛡️</span> NAT Translation Simulator</h1>
+        <button class="reset-btn" onclick="resetSim()">RESET SIMULATOR</button>
+    </header>
+
+    <div id="sim-viewport">
+        <div class="zone-label" style="left: 20px;">Private Network (LAN)</div>
+        <div class="zone-label" style="right: 20px;">Public Internet (WAN)</div>
+        <div class="divider"></div>
+
+        <svg id="svg-layer">
+            <line x1="10%" y1="30%" x2="40%" y2="50%" stroke="#334155" stroke-width="2" stroke-dasharray="5,5" />
+            <line x1="10%" y1="70%" x2="40%" y2="50%" stroke="#334155" stroke-width="2" stroke-dasharray="5,5" />
+            <line x1="40%" y1="50%" x2="90%" y2="50%" stroke="#334155" stroke-width="3" />
+        </svg>
+
+        <!-- Devices -->
+        <div class="node" style="left: 10%; top: 30%;">
+            <h4>Laptop</h4>
+            <div class="ip">192.168.1.2</div>
+            <br><button class="btn-send" onclick="spawnPacket('192.168.1.2', 1)">SEND REQ</button>
+        </div>
+
+        <div class="node" style="left: 10%; top: 70%;">
+            <h4>Mobile</h4>
+            <div class="ip">192.168.1.3</div>
+            <br><button class="btn-send" onclick="spawnPacket('192.168.1.3', 2)">SEND REQ</button>
+        </div>
+
+        <!-- Router -->
+        <div class="node router-node" style="left: 40%; top: 50%;">
+            <h4>NAT Gateway / Router</h4>
+            <div style="display: flex; justify-content: space-around; margin-top: 10px;">
+                <div><small>LAN IP</small><br><span class="ip" style="color:var(--accent-emerald)">192.168.1.1</span></div>
+                <div><small>WAN IP</small><br><span class="ip" style="color:var(--accent-amber)">203.0.113.1</span></div>
+            </div>
+        </div>
+
+        <!-- Server -->
+        <div class="node server-node" style="left: 90%; top: 50%;">
+            <h4 style="color: var(--accent-blue)">Cloud Server</h4>
+            <div class="ip" style="color: var(--accent-emerald)">8.8.8.8</div>
+        </div>
+
+        <!-- Packets Container -->
+        <div id="packet-container"></div>
+    </div>
+
+    <div id="data-panel">
+        <div class="table-area">
+            <h3>Router NAT Translation Table</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Internal IP : Port</th>
+                        <th>Direction</th>
+                        <th>External IP : Port</th>
+                    </tr>
+                </thead>
+                <tbody id="nat-table-body">
+                    <tr><td colspan="3" style="text-align:center; color:#475569; padding:20px;">No active mappings.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="log-area" id="log-console">
+            <div class="log-entry"><span class="log-time">[00:00:00]</span> <span class="log-msg">System ready. Waiting for packets...</span></div>
+        </div>
+    </div>
+
+    <script>
+        const ROUTER_WAN_IP = "203.0.113.1";
+        const SERVER_IP = "8.8.8.8";
+        
+        let packets = [];
+        let natTable = [];
+        let packetIdCounter = 0;
+
+        function addLog(msg, type = 'info') {
+            const console = document.getElementById('log-console');
+            const time = new Date().toLocaleTimeString([], { hour12: false });
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-msg ${type}">${msg}</span>`;
+            console.prepend(entry);
+        }
+
+        function updateNatTableUI() {
+            const tbody = document.getElementById('nat-table-body');
+            if (natTable.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#475569; padding:20px;">No active mappings.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = natTable.map(entry => `
+                <tr>
+                    <td style="color:var(--accent-blue)">${entry.intIp}:${entry.intPort}</td>
+                    <td style="text-align:center; opacity:0.3">↔</td>
+                    <td style="color:var(--accent-amber)">${entry.extIp}:${entry.extPort}</td>
+                </tr>
+            `).join('');
+        }
+
+        function getNatEntry(intIp, deviceId) {
+            let entry = natTable.find(e => e.intIp === intIp);
+            if (!entry) {
+                entry = {
+                    intIp: intIp,
+                    intPort: 5000 + deviceId,
+                    extIp: ROUTER_WAN_IP,
+                    extPort: 8000 + deviceId
+                };
+                natTable.push(entry);
+                addLog(`NAT: Created mapping ${entry.intIp}:${entry.intPort} ↔ ${entry.extIp}:${entry.extPort}`, 'action');
+                updateNatTableUI();
+            }
+            return entry;
+        }
+
+        function spawnPacket(srcIp, deviceId) {
+            const id = packetIdCounter++;
+            const pktEl = document.createElement('div');
+            pktEl.className = 'packet';
+            pktEl.id = `pkt-${id}`;
+            pktEl.innerHTML = `<div class="packet-tooltip" id="tooltip-${id}">Src: ${srcIp}</div>`;
+            document.getElementById('packet-container').appendChild(pktEl);
+
+            const pktObj = {
+                id: id,
+                el: pktEl,
+                tooltip: document.getElementById(`tooltip-${id}`),
+                deviceId: deviceId,
+                srcIp: srcIp,
+                dstIp: SERVER_IP,
+                stage: 'LAN_OUT', // LAN_OUT, WAN_OUT, SERVER, WAN_IN, LAN_IN
+                progress: 0
+            };
+
+            packets.push(pktObj);
+            addLog(`Device ${srcIp} initiated request to ${SERVER_IP}`);
+        }
+
+        function animate() {
+            const speed = 0.8;
+            
+            packets = packets.filter(pkt => {
+                pkt.progress += speed;
+
+                if (pkt.progress >= 100) {
+                    pkt.progress = 0;
+                    
+                    if (pkt.stage === 'LAN_OUT') {
+                        pkt.stage = 'WAN_OUT';
+                        const entry = getNatEntry(pkt.srcIp, pkt.deviceId);
+                        pkt.srcIp = ROUTER_WAN_IP;
+                        pkt.tooltip.innerText = `Src: ${pkt.srcIp} (NAT'd)`;
+                        pkt.el.style.background = 'var(--accent-amber)';
+                        addLog(`Router translated source to ${ROUTER_WAN_IP}`, 'action');
+                    } 
+                    else if (pkt.stage === 'WAN_OUT') {
+                        pkt.stage = 'SERVER';
+                        pkt.progress = 0;
+                        addLog(`Server received request from ${ROUTER_WAN_IP}`, 'success');
+                    }
+                    else if (pkt.stage === 'SERVER') {
+                        pkt.stage = 'WAN_IN';
+                        pkt.srcIp = SERVER_IP;
+                        pkt.dstIp = ROUTER_WAN_IP;
+                        pkt.tooltip.innerText = `Dst: ${ROUTER_WAN_IP}`;
+                        pkt.el.style.background = 'var(--accent-emerald)';
+                        addLog(`Server sending response to Gateway...`);
+                    }
+                    else if (pkt.stage === 'WAN_IN') {
+                        pkt.stage = 'LAN_IN';
+                        const entry = natTable.find(e => e.extPort === (8000 + pkt.deviceId));
+                        pkt.dstIp = entry.intIp;
+                        pkt.tooltip.innerText = `Dst: ${pkt.dstIp} (Reverse NAT)`;
+                        addLog(`Router translated destination back to ${pkt.dstIp}`, 'action');
+                    }
+                    else if (pkt.stage === 'LAN_IN') {
+                        addLog(`Packet successfully returned to ${pkt.dstIp}`, 'success');
+                        pkt.el.remove();
+                        return false;
+                    }
+                }
+
+                // Calculate Position
+                const devY = pkt.deviceId === 1 ? 30 : 70;
+                let start = { x: 10, y: devY };
+                let end = { x: 40, y: 50 };
+
+                if (pkt.stage === 'WAN_OUT') { start = { x: 40, y: 50 }; end = { x: 90, y: 50 }; }
+                if (pkt.stage === 'SERVER') { start = { x: 90, y: 50 }; end = { x: 90, y: 50 }; } // Pause at server
+                if (pkt.stage === 'WAN_IN') { start = { x: 90, y: 50 }; end = { x: 40, y: 50 }; }
+                if (pkt.stage === 'LAN_IN') { start = { x: 40, y: 50 }; end = { x: 10, y: devY }; }
+
+                const curX = start.x + (end.x - start.x) * (pkt.progress / 100);
+                const curY = start.y + (end.y - start.y) * (pkt.progress / 100);
+
+                pkt.el.style.left = curX + '%';
+                pkt.el.style.top = curY + '%';
+
+                return true;
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        function resetSim() {
+            packets.forEach(p => p.el.remove());
+            packets = [];
+            natTable = [];
+            addLog("Simulator reset.", "action");
+            updateNatTableUI();
+        }
+
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO METADATA -->
+    <meta name="description" content="Cybersecurity Networking Basics: LAN vs WAN, MAC vs IP, bandwidth analysis, and DNS fundamentals with a security-first approach.">
+    <meta name="keywords" content="networking basics, mac address, ip address, lan wan, cybersecurity training, dns poisoning">
+    <meta name="author" content="The Void">
+    
+    <title>The Void | Networking Fundamentals</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- VARIABLES --- */
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;        
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* --- READING PROGRESS BAR --- */
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 1000;
+        }
+
+        .reading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* --- NAV BAR --- */
+        .top-nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        /* --- HEADER & METADATA --- */
+        header { margin-bottom: 50px; }
+        h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--text-main); }
+        .module-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.05);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .meta-badge.difficulty { color: var(--accent); border-color: rgba(34, 197, 94, 0.3); }
+
+        /* --- LAYOUT GRID --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 50px;
+            position: relative;
+        }
+
+        /* --- STICKY SIDEBAR --- */
+        .sidebar {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+
+        .toc {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(5px);
+        }
+        .toc h4 { margin-bottom: 15px; color: var(--text-main); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
+        .toc a { 
+            display: block; 
+            padding: 8px 0; 
+            color: var(--text-muted); 
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            margin-left: -10px;
+            transition: all 0.2s;
+        }
+        .toc a:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
+        
+        .toc a.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* --- MAIN CONTENT & SIMULATION LINKS --- */
+        main h2 { 
+            font-size: 1.8rem; 
+            margin: 0 0 10px; 
+            color: var(--text-main); 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            scroll-margin-top: 100px;
+        }
+
+        /* Redirect Button Styling */
+        .btn-sim {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            margin-bottom: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+            text-decoration: none; /* Required for <a> tag */
+        }
+        .btn-sim:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+        .btn-sim::before { content: '▶'; font-size: 0.7rem; }
+        
+        main section {
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        main section:last-of-type { border-bottom: none; }
+
+        h3 { font-size: 1.3rem; margin: 30px 0 10px; color: var(--text-main); }
+        p { margin-bottom: 20px; color: var(--text-muted); font-size: 1.05rem; }
+        ul { margin-bottom: 20px; padding-left: 20px; }
+        li { margin-bottom: 10px; color: var(--text-muted); }
+
+        /* --- VISUAL DIAGRAMS --- */
+        .network-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 30px 0;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+        }
+        .flow-node {
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 10px 15px;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .flow-arrow { color: var(--text-muted); }
+
+        /* --- SPECIAL BOXES --- */
+        .hackers-note {
+            background: rgba(139, 92, 246, 0.08);
+            border-left: 4px solid var(--purple);
+            padding: 20px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 25px 0;
+        }
+        .hackers-note h4 { color: var(--purple); margin-bottom: 5px; font-size: 1rem; }
+        .hackers-note p { color: #cbd5e1; margin: 0; font-size: 0.95rem; }
+
+        .security-check {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: var(--radius);
+            padding: 15px 20px;
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+        }
+        .sc-icon { font-size: 1.5rem; }
+        .sc-content h4 { color: var(--warning); margin-bottom: 5px; font-size: 1rem; }
+        .sc-content p { margin: 0; font-size: 0.9rem; }
+
+        .mini-lab {
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px dashed var(--accent);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .mini-lab h4 { color: var(--accent); margin-bottom: 10px; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+
+        .table-container { overflow-x: auto; margin: 25px 0; border: 1px solid var(--border); border-radius: var(--radius); }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
+        th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); border-bottom: 1px solid var(--border); }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.9rem; }
+        tr:last-child td { border-bottom: none; }
+
+        .terminal {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            color: #c9d1d9;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .terminal-header { display: flex; gap: 6px; margin-bottom: 15px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
+        .cmd { color: var(--accent); } .comment { color: #64748b; font-style: italic; }
+
+        .recap-box {
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-top: 40px;
+        }
+        .recap-list li { position: relative; padding-left: 25px; margin-bottom: 10px; }
+        .recap-list li::before { content: '✔'; position: absolute; left: 0; color: var(--accent); font-weight: bold; }
+
+        .module-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .next-preview { text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted); }
+        .btn-next {
+            background: var(--accent);
+            color: #000;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-next:hover { transform: translateY(-2px); box-shadow: 0 0 15px var(--accent-glow); }
+
+        @media(max-width: 900px) {
+            .layout-grid { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SCROLL PROGRESS -->
+    <div class="reading-progress">
+        <div class="reading-bar" id="reading-bar"></div>
+    </div>
+
+    <div class="container">
+        
+        <!-- Navigation -->
+        <nav class="top-nav">
+            <a href="../index.html" class="back-link">
+                ← Back to Roadmap
+            </a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 01</span>
+        </nav>
+
+        <header>
+            <div class="module-meta">
+                <span class="meta-badge difficulty">Beginner</span>
+                <span class="meta-badge">⏱ 45 Minutes</span>
+                <span class="meta-badge">Prereq: None</span>
+            </div>
+            <h1>Networking Fundamentals</h1>
+            <p style="max-width: 700px;">Before you can exploit a network, you must understand the infrastructure. This module covers the vocabulary of the internet and how devices identify each other.</p>
+        </header>
+
+        <div class="layout-grid">
+            
+            <!-- LEFT: STICKY TOC -->
+            <aside class="sidebar">
+                <div class="toc">
+                    <h4>On this page</h4>
+                    <a href="#concepts">1. What is a Network?</a>
+                    <a href="#types">2. LAN vs WAN</a>
+                    <a href="#speed">3. Bandwidth & Latency</a>
+                    <a href="#addressing">4. MAC vs IP Address</a>
+                    <a href="#public-private">5. Public vs Private IP</a>
+                    <a href="#dns">6. DNS Basics</a>
+                    <a href="#recap">📌 Module Recap</a>
+                </div>
+            </aside>
+
+            <!-- RIGHT: CONTENT -->
+            <main>
+                <!-- 1. What is a Network? -->
+                <section id="concepts">
+                    <h2>1. What is a Network?</h2>
+                    <a href="/sim/ping.html" class="btn-sim">Launch Ping Sim</a>
+                    
+                    <p>A network is simply two or more computers connected together to share resources. In cybersecurity, the network is the <strong>battlefield</strong>. It is the road that data travels on.</p>
+                    
+                    <div class="terminal">
+                        <div class="terminal-header">
+                            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                        </div>
+                        <span class="cmd">root@kali:~#</span> ping 8.8.8.8<br>
+                        <span class="comment"># Sending data packets to Google to see if the network is alive</span><br>
+                        PING 8.8.8.8 (8.8.8.8) 56(84) bytes of data.<br>
+                        64 bytes from 8.8.8.8: icmp_seq=1 ttl=115 time=14.2 ms
+                    </div>
+
+                    <div class="security-check">
+                        <div class="sc-icon">🕵️</div>
+                        <div class="sc-content">
+                            <h4>Security Relevance</h4>
+                            <p>Hackers start every engagement by "mapping the network." They use tools like <code>nmap</code> to find every connected device.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. LAN vs WAN -->
+                <section id="types">
+                    <h2>2. LAN vs WAN</h2>
+                    <a href="/sim/lanwan.html" class="btn-sim">Launch LAN Visualizer</a>
+                    
+                    <p>Networks are classified by their physical scope. Understanding this distinction is vital for understanding "pivoting" attacks.</p>
+                    
+                    <!-- VISUAL DIAGRAM -->
+                    <div class="network-flow">
+                        <div class="flow-node">Your PC</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Router (Gateway)</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">ISP</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">The Internet</div>
+                    </div>
+
+                    <div class="hackers-note">
+                        <h4>🛡️ Attack Vector: Pivoting</h4>
+                        <p><strong>LAN attacks</strong> usually involve "Pivoting". Once you hack one weak device (like a printer), you are "inside" the LAN.</p>
+                    </div>
+
+                    <div class="mini-lab">
+                        <h4>🧪 Mini Exercise</h4>
+                        <p>Open your terminal (or CMD on Windows) and type: <code>ipconfig</code> (Win) or <code>ip a</code> (Linux).<br>Look for your "IPv4 Address". Does it start with 192.168... or 10...? If so, you are on a LAN.</p>
+                    </div>
+                </section>
+
+                <!-- 3. Performance Metrics -->
+                <section id="speed">
+                    <h2>3. Bandwidth, Latency, Throughput</h2>
+                    <a href="/sim/bandwidth.html" class="btn-sim">Launch Speed Sim</a>
+
+                    <p>Confusing these terms is a rookie mistake. Imagine a highway:</p>
+                    <ul>
+                        <li><strong>Bandwidth:</strong> The number of lanes on the highway. (Max theoretical capacity).</li>
+                        <li><strong>Throughput:</strong> The actual number of cars moving right now. (Real-world speed).</li>
+                        <li><strong>Latency (Ping):</strong> The time it takes for one car to drive to the destination and come back.</li>
+                    </ul>
+
+                    <div class="security-check">
+                        <div class="sc-icon">⚠️</div>
+                        <div class="sc-content">
+                            <h4>Red Flag: High Latency</h4>
+                            <p>Sudden high latency or low throughput can indicate that your traffic is being intercepted, proxied, or routed through a malicious node (Man-in-the-Middle attack).</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. MAC vs IP -->
+                <section id="addressing">
+                    <h2>4. MAC vs IP Address</h2>
+                    <a href="/sim/macip.html" class="btn-sim">Launch Packet Viewer</a>
+
+                    <p>Every device needs an ID card. In networking, you have two.</p>
+
+                    <h3>MAC Address (Physical)</h3>
+                    <p>Burnt into the hardware. Looks like: <code style="color:var(--accent)">00:1A:2B:3C:4D:5E</code>. Used for local communication <strong>inside the LAN</strong>.</p>
+
+                    <h3>IP Address (Logical)</h3>
+                    <p>Assigned by the network router. Looks like: <code style="color:var(--accent)">192.168.1.5</code>. Used to find devices <strong>across the internet</strong>.</p>
+
+                    <div class="hackers-note">
+                        <h4>💀 MAC Spoofing</h4>
+                        <p>Hackers change their MAC address to bypass "MAC Filtering" on Wi-Fi or to impersonate trusted devices. In Linux, this is as easy as typing: <code>macchanger -r eth0</code>.</p>
+                    </div>
+                </section>
+
+                <!-- 5. Public vs Private IP -->
+                <section id="public-private">
+                    <h2>5. Public vs Private IP</h2>
+                    <a href="/sim/nat.html" class="btn-sim">Launch NAT Sim</a>
+
+                    <p>Not all IP addresses can go on the internet. Because we ran out of IPv4 addresses, we use private ranges internally.</p>
+
+                    <div class="terminal">
+                        <div class="terminal-header">
+                            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                        </div>
+                        <span class="comment"># Common Private Ranges (RFC 1918)</span><br>
+                        <span class="cmd">192.168.x.x</span>  (Home networks)<br>
+                        <span class="cmd">10.x.x.x</span>       (Enterprise networks)<br>
+                        <span class="cmd">172.16.x.x</span>    (Universities/Labs)
+                    </div>
+                </section>
+
+                <!-- 6. DNS Basics -->
+                <section id="dns">
+                    <h2>6. DNS (Domain Name System)</h2>
+                    <a href="/sim/dns.html" class="btn-sim">Launch DNS SIMULATION</a>
+
+                    <p>Computers speak in numbers (IPs), humans speak in names (google.com). DNS is the phonebook that translates them.</p>
+
+                    <div class="hackers-note">
+                        <h4>⚠️ Attack Vector: DNS Poisoning</h4>
+                        <p>If a hacker can corrupt the DNS cache, they can make <code>facebook.com</code> point to their own malicious IP address.</p>
+                    </div>
+
+                    <div class="mini-lab">
+                        <h4>🧪 Mini Exercise</h4>
+                        <p>Open your terminal and type: <code>nslookup google.com</code>.<br>
+                        The "Address" shown is the real IP address of Google's server. You just performed a DNS query manually.</p>
+                    </div>
+                </section>
+
+                <!-- RECAP -->
+                <section id="recap" style="border-bottom: none;">
+                    <div class="recap-box">
+                        <h3>📌 Module Recap</h3>
+                        <ul class="recap-list">
+                            <li><strong>LAN</strong> is your trusted local zone; <strong>WAN</strong> is the untrusted internet.</li>
+                            <li><strong>MAC Addresses</strong> are for local ID; <strong>IP Addresses</strong> are for global travel.</li>
+                            <li><strong>Private IPs</strong> (192.168.x.x) stay inside; <strong>Public IPs</strong> go outside.</li>
+                            <li><strong>DNS</strong> translates names to IPs. It is a frequent target for spoofing.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FOOTER NAV -->
+                <div class="module-footer">
+                    <a href="../index.html" class="back-link">← Back to Roadmap</a>
+                    <div>
+                        <div class="next-preview">Next: OSI Model & Encapsulation</div>
+                        <a href="02-osi-model.html" class="btn-next">Next Module →</a>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        // 1. Reading Progress Bar
+        window.addEventListener("scroll", () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById("reading-bar").style.width = progress + "%";
+        });
+
+        // 2. Active TOC Highlighter
+        const sections = document.querySelectorAll("main section");
+        const tocLinks = document.querySelectorAll(".toc a");
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+                    tocLinks.forEach(link => {
+                        link.classList.remove("active");
+                        if (link.getAttribute("href") === "#" + id) {
+                            link.classList.add("active");
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 }); 
+
+        sections.forEach(section => observer.observe(section));
+
+        // 3. Auto-Mark as Completed
+        window.onload = function() {
+            const MODULE_ID = 0; 
+            let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
+            if(!savedProgress.includes(MODULE_ID)) {
+                savedProgress.push(MODULE_ID);
+                localStorage.setItem('voidNetProgress', JSON.stringify(savedProgress));
+            }
+        };
+    </script>
+</body>
+</html>

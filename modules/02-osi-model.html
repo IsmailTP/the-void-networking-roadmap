@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO METADATA -->
+    <meta name="description" content="OSI & TCP/IP Models: Data encapsulation, the 3-way handshake, and mapping cyber attacks to network layers.">
+    <meta name="keywords" content="OSI model, TCP/IP, encapsulation, 3-way handshake, network security, packet analysis">
+    <meta name="author" content="The Void">
+    
+    <title>The Void | OSI & TCP/IP Models</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- VARIABLES (Sync with Module 01) --- */
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;        
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* --- READING PROGRESS BAR --- */
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 1000;
+        }
+        .reading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* --- NAV BAR --- */
+        .top-nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        /* --- HEADER & METADATA --- */
+        header { margin-bottom: 50px; }
+        h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--text-main); }
+        .module-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.05);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .meta-badge.difficulty { color: var(--purple); border-color: rgba(139, 92, 246, 0.3); }
+
+        /* --- LAYOUT GRID --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 50px;
+            position: relative;
+        }
+
+        /* --- STICKY SIDEBAR --- */
+        .sidebar {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+        .toc {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(5px);
+        }
+        .toc h4 { margin-bottom: 15px; color: var(--text-main); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
+        .toc a { 
+            display: block; 
+            padding: 8px 0; 
+            color: var(--text-muted); 
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            margin-left: -10px;
+            transition: all 0.2s;
+        }
+        .toc a:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
+        .toc a.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* --- MAIN CONTENT STYLES --- */
+        main h2 { 
+            font-size: 1.8rem; 
+            margin: 0 0 10px; 
+            color: var(--text-main); 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            scroll-margin-top: 100px;
+        }
+
+        .btn-sim {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid var(--purple);
+            color: var(--purple);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            margin-bottom: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .btn-sim:hover {
+            background: var(--purple);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+        }
+
+        main section {
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        h3 { font-size: 1.3rem; margin: 30px 0 10px; color: var(--text-main); }
+        p { margin-bottom: 20px; color: var(--text-muted); font-size: 1.05rem; }
+
+        /* --- SPECIAL BOXES --- */
+        .hackers-note {
+            background: rgba(139, 92, 246, 0.08);
+            border-left: 4px solid var(--purple);
+            padding: 20px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 25px 0;
+        }
+        .hackers-note h4 { color: var(--purple); margin-bottom: 5px; font-size: 1rem; }
+        
+        .security-check {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: var(--radius);
+            padding: 15px 20px;
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+        }
+        .sc-content h4 { color: var(--warning); margin-bottom: 5px; font-size: 1rem; }
+
+        .mini-lab {
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px dashed var(--accent);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .mini-lab h4 { color: var(--accent); margin-bottom: 10px; font-size: 1rem; }
+
+        /* --- OSI VISUAL --- */
+        .osi-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 30px 0;
+        }
+        .osi-layer {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 12px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .osi-layer:hover {
+            border-color: var(--accent);
+            transform: translateX(10px);
+            background: rgba(255,255,255,0.02);
+        }
+        .layer-n { font-family: var(--font-code); color: var(--accent); font-weight: bold; width: 40px; }
+        .layer-name { flex-grow: 1; font-weight: 600; }
+        .layer-unit { font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-code); background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 4px; }
+
+        .table-container { overflow-x: auto; margin: 25px 0; border: 1px solid var(--border); border-radius: var(--radius); }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
+        th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); border-bottom: 1px solid var(--border); }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.9rem; }
+
+        .terminal {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            color: #c9d1d9;
+        }
+        .terminal-header { display: flex; gap: 6px; margin-bottom: 15px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
+        .cmd { color: var(--accent); }
+
+        .module-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-next {
+            background: var(--accent);
+            color: #000;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-next:hover { transform: translateY(-2px); box-shadow: 0 0 15px var(--accent-glow); }
+
+        @media(max-width: 900px) {
+            .layout-grid { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="reading-progress">
+        <div class="reading-bar" id="reading-bar"></div>
+    </div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="../index.html" class="back-link">← Back to Roadmap</a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 02</span>
+        </nav>
+
+        <header>
+            <div class="module-meta">
+                <span class="meta-badge difficulty">Intermediate</span>
+                <span class="meta-badge">⏱ 60 Minutes</span>
+                <span class="meta-badge">Prereq: Module 01</span>
+            </div>
+            <h1>OSI & TCP/IP Models</h1>
+            <p style="max-width: 700px;">To exploit a network, you must understand how data is packaged. This module breaks down the layers of communication and how they are targeted by attackers.</p>
+        </header>
+
+        <div class="layout-grid">
+            <aside class="sidebar">
+                <div class="toc">
+                    <h4>On this page</h4>
+                    <a href="#osi">1. The OSI Model</a>
+                    <a href="#encapsulation">2. Data Encapsulation</a>
+                    <a href="#tcp-udp">3. TCP vs UDP</a>
+                    <a href="#handshake">4. The 3-Way Handshake</a>
+                    <a href="#attacks">5. Layer-Based Attacks</a>
+                    <a href="#recap">📌 Module Recap</a>
+                </div>
+            </aside>
+
+            <main>
+                <!-- 1. OSI Model -->
+                <section id="osi">
+                    <h2>1. The OSI Model</h2>
+                    <a href="/sim/osi.html" class="btn-sim">Launch OSI Visualizer</a>
+                    <p>The OSI (Open Systems Interconnection) model is a 7-layer framework used to describe how data moves from one device to another.</p>
+
+                    <div class="osi-stack">
+                        <div class="osi-layer"><span class="layer-n">L7</span><span class="layer-name">Application</span><span class="layer-unit">Data</span></div>
+                        <div class="osi-layer"><span class="layer-n">L6</span><span class="layer-name">Presentation</span><span class="layer-unit">Data</span></div>
+                        <div class="osi-layer"><span class="layer-n">L5</span><span class="layer-name">Session</span><span class="layer-unit">Data</span></div>
+                        <div class="osi-layer" style="border-color: var(--purple);"><span class="layer-n">L4</span><span class="layer-name">Transport</span><span class="layer-unit">Segments</span></div>
+                        <div class="osi-layer"><span class="layer-n">L3</span><span class="layer-name">Network</span><span class="layer-unit">Packets</span></div>
+                        <div class="osi-layer"><span class="layer-n">L2</span><span class="layer-name">Data Link</span><span class="layer-unit">Frames</span></div>
+                        <div class="osi-layer"><span class="layer-n">L1</span><span class="layer-name">Physical</span><span class="layer-unit">Bits</span></div>
+                    </div>
+
+                    <div class="hackers-note">
+                        <h4>Mnemonic Tool</h4>
+                        <p>Remember it from bottom (L1) to top (L7): <strong>P</strong>lease <strong>D</strong>o <strong>N</strong>ot <strong>T</strong>hrow <strong>S</strong>ausage <strong>P</strong>izza <strong>A</strong>way.</p>
+                    </div>
+                </section>
+
+                <!-- 2. Encapsulation -->
+                <section id="encapsulation">
+                    <h2>2. Data Encapsulation</h2>
+                    <p>As data travels down the layers, each layer adds a "Header" (like an envelope). This process is called <strong>Encapsulation</strong>. When the receiver gets it, they <strong>De-encapsulate</strong> it.</p>
+                    
+                    <div class="terminal">
+                        <div class="terminal-header">
+                            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                        </div>
+                        <span class="cmd">[L2 Header]</span> [L3 Header] [L4 Header] [Data Payload] [L2 Trailer]<br>
+                        <span style="color: #64748b;">^--- The "Frame" that actually hits the wire ---^</span>
+                    </div>
+
+                    <div class="security-check">
+                        <div class="sc-content">
+                            <h4>🛡️ Deep Packet Inspection (DPI)</h4>
+                            <p>Basic firewalls only look at L3 (IP) and L4 (Ports). Modern security tools use DPI to look inside the L7 "Data Payload" to find malware.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. TCP vs UDP -->
+                <section id="tcp-udp">
+                    <h2>3. TCP vs UDP</h2>
+                    <p>The Transport Layer (L4) decides how to send data. It's a choice between <strong>Reliability</strong> and <strong>Speed</strong>.</p>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Feature</th><th>TCP (Transmission Control)</th><th>UDP (User Datagram)</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Connection</td><td>Connection-Oriented</td><td>Connectionless</td></tr>
+                                <tr><td>Speed</td><td>Slower (Reliability overhead)</td><td>Faster (Fire and forget)</td></tr>
+                                <tr><td>Reliability</td><td>Guaranteed Delivery</td><td>No Guarantee</td></tr>
+                                <tr><td>Examples</td><td>HTTP, SSH, FTP</td><td>DNS, VoIP, Gaming</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 4. Handshake -->
+                <section id="handshake">
+                    <h2>4. The 3-Way Handshake</h2>
+                    <a href="/sim/handshake.html" class="btn-sim">Launch Handshake Sim</a>
+                    <p>Before TCP sends any real data, it performs a 3-step greeting to ensure both sides are ready.</p>
+
+                    <div class="terminal">
+                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                        1. Client -> [SYN] -> Server <span style="color:var(--text-muted)">(Synchronize?)</span><br>
+                        2. Server -> [SYN/ACK] -> Client <span style="color:var(--text-muted)">(Yes, Synchronize & Acknowledge)</span><br>
+                        3. Client -> [ACK] -> Server <span style="color:var(--text-muted)">(Understood, Acknowledged)</span>
+                    </div>
+
+                    <div class="hackers-note">
+                        <h4>💀 SYN Flood Attack</h4>
+                        <p>Hackers send thousands of [SYN] packets but never send the final [ACK]. This leaves the server's memory full of "half-open" connections, causing a Denial of Service (DoS).</p>
+                    </div>
+                </section>
+
+                <!-- 5. Attacks -->
+                <section id="attacks">
+                    <h2>5. Layer-Based Attacks</h2>
+                    <p>Hackers target specific layers depending on their goal. Knowing where an attack lives helps you defend against it.</p>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>OSI Layer</th><th>Attack Examples</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><strong>Layer 7 (App)</strong></td><td>SQL Injection, Cross-Site Scripting (XSS)</td></tr>
+                                <tr><td><strong>Layer 4 (Transport)</strong></td><td>Port Scanning, SYN Flooding</td></tr>
+                                <tr><td><strong>Layer 3 (Network)</strong></td><td>IP Spoofing, ICMP Smurfing</td></tr>
+                                <tr><td><strong>Layer 2 (Data Link)</strong></td><td>ARP Spoofing, MAC Flooding</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mini-lab">
+                        <h4>🧪 Mini Exercise</h4>
+                        <p>Run a "Stealth Scan" using Nmap: <code>sudo nmap -sS [target-ip]</code>.<br>
+                        This performs a "Half-Open" handshake (SYN, then RST) to see if a port is open without completing the connection.</p>
+                    </div>
+                </section>
+
+                <!-- RECAP -->
+                <section id="recap" style="border-bottom: none;">
+                    <div class="recap-box" style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3>📌 Module Recap</h3>
+                        <ul style="padding-left: 20px;">
+                            <li style="margin-bottom: 10px;"><strong>OSI Model</strong> has 7 layers; <strong>TCP/IP</strong> has 4 layers.</li>
+                            <li style="margin-bottom: 10px;"><strong>Encapsulation</strong> wraps data in headers as it moves down the stack.</li>
+                            <li style="margin-bottom: 10px;"><strong>TCP</strong> is reliable (Handshake); <strong>UDP</strong> is fast (No Handshake).</li>
+                            <li style="margin-bottom: 10px;">Security issues exist at <strong>every layer</strong> of the stack.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FOOTER NAV -->
+                <div class="module-footer">
+                    <a href="01-basics.html" class="back-link">← Previous Module</a>
+                    <div>
+                        <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">Next: IP Addressing & Subnetting</div>
+                        <a href="03-subnetting.html" class="btn-next">Next Module →</a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Reading Progress
+        window.addEventListener("scroll", () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById("reading-bar").style.width = progress + "%";
+        });
+
+        // TOC Active Link
+        const sections = document.querySelectorAll("main section");
+        const tocLinks = document.querySelectorAll(".toc a");
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach(link => {
+                        link.classList.remove("active");
+                        if (link.getAttribute("href") === "#" + entry.target.id) {
+                            link.classList.add("active");
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(section => observer.observe(section));
+
+        // Progress Tracking
+        window.onload = function() {
+            const MODULE_ID = 1; // Second module
+            let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
+            if(!savedProgress.includes(MODULE_ID)) {
+                savedProgress.push(MODULE_ID);
+                localStorage.setItem('voidNetProgress', JSON.stringify(savedProgress));
+            }
+        };
+    </script>
+</body>
+</html>

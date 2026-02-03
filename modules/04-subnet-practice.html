@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Subnetting Lab</title>
+    <style>
+        :root {
+            /* Dark Theme Palette */
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --bg-main: #0f172a; /* Deep dark slate */
+            --bg-card: #1e293b; /* Lighter slate panel */
+            --bg-input: #0f172a;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            
+            /* Feedback Colors with transparency for dark mode */
+            --success-border: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.15);
+            --error-border: #ef4444;
+            --error-bg: rgba(239, 68, 68, 0.15);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--bg-card);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            max-width: 550px;
+            width: 100%;
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        /* Info Panel Styles */
+        .info-panel {
+            background-color: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-main-problem {
+            text-align: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .problem-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--primary-hover);
+            letter-spacing: 1px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* Form Styles */
+        .input-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.85rem;
+            background-color: var(--bg-input);
+            border: 2px solid var(--border);
+            color: var(--text-main);
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-family: 'Courier New', Courier, monospace;
+            box-sizing: border-box;
+            transition: all 0.2s ease-in-out;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        input.correct {
+            border-color: var(--success-border);
+            background-color: var(--success-bg);
+            color: var(--success-border);
+        }
+
+        input.incorrect {
+            border-color: var(--error-border);
+            background-color: var(--error-bg);
+            color: var(--error-border);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 2rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--border);
+            color: white;
+        }
+
+        .status-msg {
+            margin-top: 1rem;
+            text-align: center;
+            font-weight: 600;
+            min-height: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .hint-wrapper {
+            position: relative;
+        }
+
+        .hint {
+            font-size: 0.9rem;
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--text-muted);
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            background: var(--bg-card);
+            padding-left: 10px;
+            display: none;
+        }
+        
+        .give-up-btn {
+             background:none; 
+             border: none;
+             color: var(--text-muted); 
+             text-decoration: underline; 
+             font-size: 0.9rem;
+             padding: 10px;
+             cursor: pointer;
+        }
+        
+        .give-up-btn:hover {
+            color: var(--primary-hover);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Subnet Practice Lab</h1>
+
+    <div class="info-panel">
+        <div class="info-main-problem">
+            <div class="info-label">Solve for IP / CIDR</div>
+            <div class="problem-text" id="problem-ip">Loading...</div>
+        </div>
+        <div class="info-grid">
+            <div>
+                <div class="info-label">Subnet Mask</div>
+                <div class="info-value" id="info-mask">...</div>
+            </div>
+            <div>
+                <div class="info-label">Total IPs</div>
+                <div class="info-value" id="info-total">...</div>
+            </div>
+            <div>
+                <div class="info-label">Usable Hosts</div>
+                <div class="info-value" id="info-usable">...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="network-id">Network ID</label>
+        <div class="hint-wrapper">
+            <input type="text" id="network-id" placeholder="x.x.x.x" autocomplete="off">
+            <div class="hint" id="hint-network"></div>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="first-ip">First Usable IP</label>
+        <div class="hint-wrapper">
+            <input type="text" id="first-ip" placeholder="x.x.x.x" autocomplete="off">
+            <div class="hint" id="hint-first"></div>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="last-ip">Last Usable IP</label>
+        <div class="hint-wrapper">
+            <input type="text" id="last-ip" placeholder="x.x.x.x" autocomplete="off">
+            <div class="hint" id="hint-last"></div>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="broadcast-id">Broadcast ID</label>
+        <div class="hint-wrapper">
+            <input type="text" id="broadcast-id" placeholder="x.x.x.x" autocomplete="off">
+            <div class="hint" id="hint-broadcast"></div>
+        </div>
+    </div>
+
+    <div class="status-msg" id="status-msg"></div>
+
+    <div class="btn-group">
+        <button class="btn-primary" id="check-btn" onclick="checkAnswers()">Check Answers</button>
+        <button class="btn-secondary" id="new-btn" onclick="generateNewProblem()">New Problem</button>
+    </div>
+    <div style="text-align: center; margin-top: 15px;">
+        <button class="give-up-btn" onclick="revealAnswers()">Show Answers</button>
+    </div>
+</div>
+
+<script>
+    let currentProblem = {};
+
+    // --- Helper Functions for IP Math ---
+
+    // Convert IP string (e.g., "192.168.1.1") to 32-bit Integer
+    function ipToInt(ip) {
+        return ip.split('.').reduce((acc, octet) => {
+            // Shift existing bits 8 to the left, add new octet
+            // >>> 0 forces JS to treat result as an unsigned 32-bit integer
+            return (acc << 8) + parseInt(octet, 10);
+        }, 0) >>> 0; 
+    }
+
+    // Convert 32-bit Integer back to IP string
+    function intToIp(int) {
+        return [
+            (int >>> 24) & 255, // Extract 1st octet
+            (int >>> 16) & 255, // Extract 2nd octet
+            (int >>> 8) & 255,  // Extract 3rd octet
+            int & 255           // Extract 4th octet
+        ].join('.');
+    }
+
+    // --- Core Logic ---
+
+    function generateNewProblem() {
+        resetUI();
+
+        // 1. Generate Random IP address components
+        // Restricting first octet to A, B, C classes (1-223) for practical scenarios
+        const octet1 = Math.floor(Math.random() * 223) + 1; 
+        const octet2 = Math.floor(Math.random() * 256);
+        const octet3 = Math.floor(Math.random() * 256);
+        const octet4 = Math.floor(Math.random() * 256);
+        const ipString = `${octet1}.${octet2}.${octet3}.${octet4}`;
+        
+        // 2. Generate Random CIDR
+        // Using range /8 to /30. Excludes /31 (p2p links) and /32 (single host) for general practice.
+        const cidr = Math.floor(Math.random() * (30 - 8 + 1)) + 8;
+
+        // 3. Perform Calculations
+        const ipInt = ipToInt(ipString);
+        // Create the mask: shift 1s to the left, flip them, force unsigned.
+        const maskInt = (~((1 << (32 - cidr)) - 1)) >>> 0;
+        
+        const networkInt = (ipInt & maskInt) >>> 0;
+        const broadcastInt = (networkInt | (~maskInt)) >>> 0;
+        
+        // Calculate host counts
+        const totalHosts = Math.pow(2, (32 - cidr));
+        const usableHosts = totalHosts - 2;
+
+        currentProblem = {
+            ip: ipString,
+            cidr: cidr,
+            maskStr: intToIp(maskInt),
+            totalHosts: totalHosts.toLocaleString(),
+            usableHosts: usableHosts.toLocaleString(),
+            network: intToIp(networkInt),
+            first: intToIp(networkInt + 1),
+            last: intToIp(broadcastInt - 1),
+            broadcast: intToIp(broadcastInt)
+        };
+
+        updateDisplayInfo();
+    }
+
+    // --- UI Handling ---
+
+    function updateDisplayInfo() {
+        document.getElementById('problem-ip').innerText = `${currentProblem.ip} / ${currentProblem.cidr}`;
+        document.getElementById('info-mask').innerText = currentProblem.maskStr;
+        document.getElementById('info-total').innerText = currentProblem.totalHosts;
+        document.getElementById('info-usable').innerText = currentProblem.usableHosts;
+    }
+
+    function resetUI() {
+        document.querySelectorAll('input').forEach(input => {
+            input.value = '';
+            input.className = '';
+            input.disabled = false;
+        });
+        document.querySelectorAll('.hint').forEach(div => {
+            div.style.display = 'none';
+        });
+        const statusMsg = document.getElementById('status-msg');
+        statusMsg.innerText = '';
+        statusMsg.style.color = 'inherit';
+        document.getElementById('check-btn').disabled = false;
+    }
+
+    function checkAnswers() {
+        const inputs = {
+            network: document.getElementById('network-id'),
+            first: document.getElementById('first-ip'),
+            last: document.getElementById('last-ip'),
+            broadcast: document.getElementById('broadcast-id')
+        };
+        const statusMsg = document.getElementById('status-msg');
+        let allCorrect = true;
+
+        for (const key in inputs) {
+            // Compare input value with stored correct answer
+            if (inputs[key].value.trim() === currentProblem[key]) {
+                inputs[key].classList.add('correct');
+                inputs[key].classList.remove('incorrect');
+            } else {
+                inputs[key].classList.add('incorrect');
+                inputs[key].classList.remove('correct');
+                allCorrect = false;
+            }
+        }
+
+        if (allCorrect) {
+            statusMsg.innerText = "✔ Excellent! Calculations correct.";
+            statusMsg.style.color = "var(--success-border)";
+            document.getElementById('check-btn').disabled = true; // Prevent double checking
+        } else {
+            statusMsg.innerText = "✘ Incorrect answers detected.";
+            statusMsg.style.color = "var(--error-border)";
+        }
+    }
+
+    function revealAnswers() {
+        const mappings = [
+            { hintId: 'hint-network', inputId: 'network-id', val: currentProblem.network },
+            { hintId: 'hint-first', inputId: 'first-ip', val: currentProblem.first },
+            { hintId: 'hint-last', inputId: 'last-ip', val: currentProblem.last },
+            { hintId: 'hint-broadcast', inputId: 'broadcast-id', val: currentProblem.broadcast },
+        ];
+
+        mappings.forEach(item => {
+            const hintEl = document.getElementById(item.hintId);
+            const inputEl = document.getElementById(item.inputId);
+            
+            // Show hint and fill input
+            hintEl.style.display = 'block';
+            hintEl.innerText = item.val;
+            inputEl.value = item.val;
+            
+            // Mark as correct aesthetically and disable interaction
+            inputEl.classList.add('correct');
+            inputEl.classList.remove('incorrect');
+            inputEl.disabled = true;
+        });
+
+        const statusMsg = document.getElementById('status-msg');
+        statusMsg.innerText = "Answers revealed.";
+        statusMsg.style.color = "var(--text-muted)";
+        document.getElementById('check-btn').disabled = true;
+    }
+
+    // Start the app
+    generateNewProblem();
+
+    // Listen for Enter key
+    document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter' && !document.getElementById('check-btn').disabled) {
+            checkAnswers();
+        }
+    });
+</script>
+
+</body>
+</html>

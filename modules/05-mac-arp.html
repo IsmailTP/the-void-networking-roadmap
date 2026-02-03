@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO METADATA -->
+    <meta name="description" content="Master Layer 2 security: MAC addresses, ARP packet structure, and switch security. Learn about MITM attacks, VLAN segmentation, and enterprise defense.">
+    <meta name="keywords" content="MAC Address, ARP Packet, Address Resolution Protocol, Network Switch, VLAN, ARP Spoofing, CAM Table, Port Security, Cybersecurity">
+    <meta name="author" content="The Void">
+    
+    <title>The Void | MAC & Local Networking</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- VARIABLES --- */
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;        
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 1000;
+        }
+        .reading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .top-nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        header { margin-bottom: 50px; }
+        h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--text-main); }
+        .module-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.05);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .meta-badge.difficulty { color: var(--accent); border-color: rgba(34, 197, 94, 0.3); }
+
+        /* --- LAYOUT GRID --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 50px;
+            position: relative;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+        .toc {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(5px);
+        }
+        .toc h4 { margin-bottom: 15px; color: var(--text-main); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
+        .toc a { 
+            display: block; 
+            padding: 8px 0; 
+            color: var(--text-muted); 
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            margin-left: -10px;
+            transition: all 0.2s;
+        }
+        .toc a:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
+        .toc a.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* --- CONTENT STYLES --- */
+        main h2 { 
+            font-size: 1.8rem; 
+            margin: 0 0 10px; 
+            color: var(--text-main); 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            scroll-margin-top: 100px;
+        }
+
+        .btn-sim {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            margin-bottom: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .btn-sim:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent-glow); }
+
+        main section {
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        h3 { font-size: 1.3rem; margin: 30px 0 10px; color: var(--text-main); }
+        p { margin-bottom: 20px; color: var(--text-muted); font-size: 1.05rem; }
+
+        .terminal {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            color: #c9d1d9;
+        }
+        .terminal-header { display: flex; gap: 6px; margin-bottom: 15px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
+        .cmd { color: var(--accent); }
+
+        /* --- TABLES --- */
+        .table-container { overflow-x: auto; margin: 25px 0; border: 1px solid var(--border); border-radius: var(--radius); }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
+        th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); border-bottom: 1px solid var(--border); }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.9rem; }
+
+        /* --- SPECIAL BOXES --- */
+        .hackers-note {
+            background: rgba(139, 92, 246, 0.08);
+            border-left: 4px solid var(--purple);
+            padding: 20px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 25px 0;
+        }
+        .hackers-note h4 { color: var(--purple); margin-bottom: 5px; font-size: 1rem; }
+
+        .security-check {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: var(--radius);
+            padding: 15px 20px;
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+        }
+        .sc-content h4 { color: var(--warning); margin-bottom: 5px; font-size: 1rem; }
+
+        .mini-lab {
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px dashed var(--accent);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .mini-lab h4 { color: var(--accent); margin-bottom: 10px; font-size: 1rem; }
+
+        .module-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-next {
+            background: var(--accent);
+            color: #000;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-next:hover { transform: translateY(-2px); box-shadow: 0 0 15px var(--accent-glow); }
+
+        @media(max-width: 900px) {
+            .layout-grid { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="reading-progress">
+        <div class="reading-bar" id="reading-bar"></div>
+    </div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="../index.html" class="back-link">← Back to Roadmap</a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 04</span>
+        </nav>
+
+        <header>
+            <div class="module-meta">
+                <span class="meta-badge difficulty">Intermediate</span>
+                <span class="meta-badge">⏱ 90 Minutes</span>
+                <span class="meta-badge">Prereq: Subnetting</span>
+            </div>
+            <h1>MAC & Local Networking</h1>
+            <p style="max-width: 700px;">Layer 2 is where digital logic meets physical hardware. To secure a LAN, you must master how frames are handled before they ever reach a router.</p>
+        </header>
+
+        <div class="layout-grid">
+            <aside class="sidebar">
+                <div class="toc">
+                    <h4>On this page</h4>
+                    <a href="#mac">1. The MAC Address</a>
+                    <a href="#arp">2. ARP Fundamentals</a>
+                    <a href="#switching">3. Switching & CAM</a>
+                    <a href="#vlan">4. VLAN Segmentation</a>
+                    <a href="#attacks">5. L2 Attack Surfaces</a>
+                    <a href="#recap">📌 Module Recap</a>
+                </div>
+            </aside>
+
+            <main>
+                <!-- 1. MAC ADDRESS -->
+                <section id="mac">
+                    <h2>1. The MAC Address</h2>
+                    <p>A Media Access Control address is the hardware's unique fingerprint. While IP addresses change based on the network, the MAC is (usually) permanent and burnt into the NIC.</p>
+                    
+                    <div class="terminal">
+                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                        <span style="color: var(--text-muted);">// MAC Address Structure</span><br>
+                        <span style="color: var(--accent);">00:1A:2B</span> : <span style="color: var(--purple);">3C:4D:5E</span><br>
+                        <span style="font-size: 0.8rem; color: #64748b;">[-- OUI (Vendor ID) --] [-- NIC Specific --]</span>
+                    </div>
+
+                    <div class="security-check">
+                        <div class="sc-content">
+                            <h4>🕵️ Recon Trick: OUI Lookup</h4>
+                            <p>By looking up the first 3 bytes (OUI) of a MAC address, hackers can identify the manufacturer (e.g., Apple, Cisco, or a specific IoT vendor) and look for known vulnerabilities in that hardware.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. ARP FUNDAMENTALS -->
+                <section id="arp">
+                    <h2>2. ARP Fundamentals</h2>
+                    <a href="/sim/arp.html" class="btn-sim">Launch ARP Visualizer</a>
+                    <p>ARP (Address Resolution Protocol) is the glue between Layer 3 (IP) and Layer 2 (MAC). It functions on a "shout and listen" model.</p>
+                    
+                    <div class="terminal">
+                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                        <span class="cmd">root@kali:~#</span> arp -a<br>
+                        <span style="color: #64748b;">// Viewing the local ARP Cache</span><br>
+                        gateway (192.168.1.1) at 00:50:56:c0:00:08 [ether] on eth0<br>
+                        victim (192.168.1.10) at 00:0c:29:4f:8a:33 [ether] on eth0
+                    </div>
+
+                    <div class="hackers-note">
+                        <h4>📦 The ARP Packet</h4>
+                        <p>ARP packets consist of an <strong>Opcode</strong> (1 for Request, 2 for Reply), a Sender IP/MAC, and a Target IP/MAC. They are trust-based; computers update their cache based on replies they never even asked for.</p>
+                    </div>
+                </section>
+
+                <!-- 3. SWITCHING & CAM -->
+                <section id="switching">
+                    <h2>3. Switching & CAM Tables</h2>
+                    <p>Switches use Content Addressable Memory (CAM) to map MAC addresses to physical ports. This is why switches are more secure than Hubs—they don't broadcast everything to everyone.</p>
+                    
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Port</th><th>MAC Address</th><th>VLAN</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Fa0/1</td><td>00:1A:2B:3C:4D:5E</td><td>10</td></tr>
+                                <tr><td>Fa0/2</td><td>AA:BB:CC:DD:EE:FF</td><td>10</td></tr>
+                                <tr><td>Fa0/3</td><td>00:0C:29:4F:8A:33</td><td>20</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="security-check">
+                        <div class="sc-content">
+                            <h4>🛡️ Port Security</h4>
+                            <p>Enterprise switches use "Port Security" to limit the number of MACs on a port. If a hacker plugs in a rogue device, the switch can automatically shut the port down.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. VLAN SEGMENTATION -->
+                <section id="vlan">
+                    <h2>4. VLAN Segmentation</h2>
+                    <a href="/sim/vlan.html" class="btn-sim">Launch VLAN Visualizer</a>
+                    <p>Virtual LANs create logical boundaries on a single physical switch. This prevents users in the "Guest Wi-Fi" from sniffing traffic in the "Server Room."</p>
+                    
+                    <div class="terminal">
+                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                        Managed Switch Layout:<br>
+                        ├── <span style="color: var(--accent);">VLAN 10</span> (HR / Employee Data)<br>
+                        ├── <span style="color: var(--warning);">VLAN 20</span> (Guest Wi-Fi / Untrusted)<br>
+                        └── <span style="color: var(--danger);">VLAN 30</span> (Database Servers / Restricted)
+                    </div>
+                </section>
+
+                <!-- 5. ATTACK SURFACES -->
+                <section id="attacks">
+                    <h2>5. L2 Attack Surfaces</h2>
+                    <p>Because Layer 2 was designed for trust, it is highly susceptible to impersonation and flooding attacks.</p>
+
+                    <h3>ARP Spoofing (Man-in-the-Middle)</h3>
+                    <p>The attacker tells the Victim "I am the Gateway" and tells the Gateway "I am the Victim." Traffic now flows through the attacker's machine.</p>
+
+                    <h3>MAC Flooding</h3>
+                    <p>The attacker fills the CAM table with thousands of fake MAC addresses. When the table is full, most switches "Fail Open" and start acting like a Hub, broadcasting all traffic to all ports.</p>
+
+                    <div class="mini-lab">
+                        <h4>🧪 Tool Spotlight: Bettercap</h4>
+                        <p>Modern pentesters use <code>bettercap</code> to automate ARP spoofing. <br>
+                        Command: <code>arp.spoof on; net.sniff on</code>. <br>
+                        <em>Warning: Only perform this in a controlled lab environment.</em></p>
+                    </div>
+                </section>
+
+                <!-- RECAP -->
+                <section id="recap" style="border-bottom: none;">
+                    <div class="recap-box" style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3>📌 Module Recap</h3>
+                        <ul style="padding-left: 20px;">
+                            <li style="margin-bottom: 10px;"><strong>MAC Addresses</strong> are physical IDs used for communication inside a LAN.</li>
+                            <li style="margin-bottom: 10px;"><strong>ARP</strong> resolves IP addresses to MAC addresses and is easily spoofed.</li>
+                            <li style="margin-bottom: 10px;"><strong>Switches</strong> use CAM tables to route traffic efficiently.</li>
+                            <li style="margin-bottom: 10px;"><strong>VLANs</strong> are the primary tool for logical network isolation.</li>
+                            <li style="margin-bottom: 10px;"><strong>L2 Attacks</strong> focus on sniffing data and breaking network segmentation.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FOOTER NAV -->
+                <div class="module-footer">
+                    <a href="03-subnetting.html" class="back-link">← Previous Module</a>
+                    <div>
+                        <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">Next: DNS & Name Resolution</div>
+                        <a href="06-dns.html" class="btn-next">Next Module →</a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Reading Progress
+        window.addEventListener("scroll", () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById("reading-bar").style.width = progress + "%";
+        });
+
+        // TOC Active Link
+        const sections = document.querySelectorAll("main section");
+        const tocLinks = document.querySelectorAll(".toc a");
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach(link => {
+                        link.classList.remove("active");
+                        if (link.getAttribute("href") === "#" + entry.target.id) {
+                            link.classList.add("active");
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(section => observer.observe(section));
+
+        // Progress Tracking
+        window.onload = function() {
+            const MODULE_ID = 3; 
+            let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
+            if(!savedProgress.includes(MODULE_ID)) {
+                savedProgress.push(MODULE_ID);
+                localStorage.setItem('voidNetProgress', JSON.stringify(savedProgress));
+            }
+        };
+    </script>
+</body>
+</html>

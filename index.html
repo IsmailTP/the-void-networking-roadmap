@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO METADATA -->
+    <meta name="description" content="The Void Networking Roadmap – A structured 12-phase cybersecurity learning path.">
+    <meta name="keywords"
+        content="networking roadmap, cybersecurity, OSI model, subnetting, network attacks, blue team, red team, ctf">
+    <meta name="author" content="The Void">
+
+    <title>The Void | Network Security Roadmap</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            /* Palette */
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.2);
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --purple: #8b5cf6;
+            --border: #334155;
+
+            /* Typography */
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: var(--font-head);
+        }
+
+        code {
+            font-family: var(--font-code);
+        }
+
+        /* Utility */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-beginner {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent);
+        }
+
+        .badge-inter {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .badge-adv {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .badge-lab {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--purple);
+            border: 1px solid var(--purple);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* --- HERO SECTION --- */
+        header {
+            text-align: center;
+            padding: 100px 20px 60px;
+        }
+
+        .hero-tagline {
+            color: var(--accent);
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            display: inline-block;
+            background: rgba(34, 197, 94, 0.1);
+            padding: 5px 15px;
+            border-radius: 50px;
+        }
+
+        header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            line-height: 1.1;
+        }
+
+        header h1 span {
+            background: -webkit-linear-gradient(45deg, var(--accent), #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        /* --- POSITIONING SECTION --- */
+        .positioning-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 60px;
+            padding: 0 20px;
+        }
+
+        .position-card {
+            background: rgba(30, 41, 59, 0.3);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        .position-card h4 {
+            color: var(--text-main);
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .position-card p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .p-icon {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* --- STICKY NAV --- */
+        .roadmap-nav {
+            position: sticky;
+            top: 20px;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 10px 20px;
+            max-width: 1000px;
+            margin: 0 auto 60px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nav-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 5px;
+            overflow-x: auto;
+            padding-bottom: 2px;
+            scrollbar-width: none;
+        }
+
+        .nav-links::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-links a {
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border-radius: 8px;
+            white-space: nowrap;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-links a.active {
+            background-color: var(--bg-card);
+            color: var(--accent);
+            border: 1px solid var(--border);
+        }
+
+        .progress-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .progress-text {
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .btn-reset {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reset:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-card);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* --- PHASES --- */
+        .phase-section {
+            margin-bottom: 80px;
+            scroll-margin-top: 160px;
+            position: relative;
+        }
+
+        .phase-section::after {
+            content: '';
+            display: block;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            margin-top: 80px;
+            opacity: 0.5;
+        }
+
+        .phase-header {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+        }
+
+        .phase-number {
+            font-family: var(--font-code);
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.05);
+            margin-right: 20px;
+        }
+
+        .phase-title h2 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .phase-title p {
+            color: var(--text-muted);
+        }
+
+        /* Insight Box */
+        .security-insight {
+            background: linear-gradient(90deg, rgba(34, 197, 94, 0.05), transparent);
+            border-left: 3px solid var(--accent);
+            padding: 15px 20px;
+            margin-bottom: 30px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .insight-icon {
+            font-size: 1.2rem;
+        }
+
+        .insight-text h4 {
+            font-size: 0.95rem;
+            color: var(--accent);
+            margin-bottom: 3px;
+        }
+
+        .insight-text p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* Grid */
+        .topic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        /* Cards */
+        .topic-card {
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 25px;
+            transition: all 0.2s ease;
+            position: relative;
+            cursor: pointer;
+            text-decoration: none;
+            overflow: hidden;
+        }
+
+        .topic-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--text-muted);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-arrow {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            color: var(--accent);
+        }
+
+        .topic-card:hover .card-arrow {
+            opacity: 1;
+            transform: translateX(5px);
+        }
+
+        .card-icon {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .topic-card h3 {
+            color: var(--text-main);
+            margin-bottom: 10px;
+            font-size: 1.25rem;
+        }
+
+        .topic-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .time-est {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Toggle & Animation */
+        .card-progress-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 5;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .card-progress-toggle:hover {
+            border-color: var(--accent);
+        }
+
+        .card-progress-toggle.completed {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+            animation: pop 0.3s ease;
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0.8);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .card-progress-toggle svg {
+            width: 14px;
+            height: 14px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 3;
+        }
+
+        .topic-card.lab-card {
+            border: 1px dashed var(--purple);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .topic-card.lab-card:hover {
+            border-style: solid;
+        }
+
+        .topic-card.lab-card .card-icon {
+            background: rgba(139, 92, 246, 0.2);
+        }
+
+        .topic-card.lab-card h3 {
+            color: var(--purple);
+        }
+
+        /* Protocol Table */
+        .protocol-table-container {
+            grid-column: 1 / -1;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 25px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            font-family: var(--font-code);
+        }
+
+        th {
+            text-align: left;
+            color: var(--accent);
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        footer {
+            padding: 80px 20px;
+            background: #0b1120;
+            margin-top: 50px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-col h4 {
+            color: var(--text-main);
+            margin-bottom: 20px;
+        }
+
+        .footer-col a {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .footer-col a:hover {
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2.5rem;
+            }
+
+            .phase-number {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="container">
+            <span class="hero-tagline">12-Phase Security Masterclass</span>
+            <h1>The Void<br><span>Networking Roadmap</span></h1>
+            <p class="subtitle">A 12-phase technical journey from binary foundations to adversarial traffic analysis.
+            </p>
+        </div>
+    </header>
+
+    <div class="container">
+        <section class="positioning-grid">
+            <div class="position-card">
+                <span class="p-icon">🛡️</span>
+                <h4>Absolute Basics</h4>
+                <p>Establishing the mental model of connectivity.</p>
+            </div>
+            <div class="position-card">
+                <span class="p-icon">🔢</span>
+                <h4>IP Mastery</h4>
+                <p>Subnetting and addressing proficiency.</p>
+            </div>
+            <div class="position-card">
+                <span class="p-icon">🧪</span>
+                <h4>Traffic Analysis</h4>
+                <p>Capturing and dissecting raw packets.</p>
+            </div>
+            <div class="position-card">
+                <span class="p-icon">💀</span>
+                <h4>Adversarial</h4>
+                <p>Learning how infrastructure is exploited.</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- STICKY NAV -->
+    <nav class="roadmap-nav">
+        <div class="nav-top-row">
+            <div class="nav-links">
+                <a href="#phase1" class="nav-item">Phase 1-3</a>
+                <a href="#phase4" class="nav-item">Phase 4-6</a>
+                <a href="#phase7" class="nav-item">Phase 7-9</a>
+                <a href="#phase10" class="nav-item">Phase 10-12</a>
+            </div>
+            <div class="progress-meta">
+                <div class="progress-text">Progress: <span id="progress-percent">0%</span></div>
+                <button class="btn-reset" onclick="resetProgress()">Reset</button>
+            </div>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+    </nav>
+
+    <main class="container">
+
+        <!-- GROUP 1: PHASES 1-3 (BASICS & IP) -->
+        <section id="phase1" class="phase-section">
+            <div class="phase-header">
+                <div class="phase-number">01</div>
+                <div class="phase-title">
+                    <h2>Foundation & Models</h2>
+                    <p>Phases 1-2: Understanding how data moves and the 7-layer architecture.</p>
+                </div>
+            </div>
+
+            <div class="topic-grid">
+                <a href="modules/01-basics.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🏗️</div>
+                    <h3>Absolute Basics</h3>
+                    <p>What is a network? LAN/WAN/MAN, Client-Server model, and the Internet's core structure.</p>
+                    <div class="card-meta"><span class="badge badge-beginner">Foundation</span></div>
+                </a>
+
+                <a href="modules/02-osi-model.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🌐</div>
+                    <h3>OSI & TCP/IP Models</h3>
+                    <p>7 Layers, Encapsulation, TCP vs UDP, and the 3-Way Handshake protocol.</p>
+                    <div class="card-meta"><span class="badge badge-beginner">Core Theory</span></div>
+                </a>
+            </div>
+        </section>
+
+        <section id="phase3" class="phase-section">
+            <div class="phase-header">
+                <div class="phase-number">03</div>
+                <div class="phase-title">
+                    <h2>IP Addressing</h2>
+                    <p>Phase 3: Deep dive into binary, CIDR, and subnetting logic.</p>
+                </div>
+            </div>
+
+            <div class="security-insight">
+                <div class="insight-icon">💡</div>
+                <div class="insight-text">
+                    <h4>Critical Requirement</h4>
+                    <p>Do not move forward until you master subnetting. It is the language of network boundaries.</p>
+                </div>
+            </div>
+
+            <div class="topic-grid">
+                <a href="modules/03-subnetting.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🔢</div>
+                    <h3>IP Structure & Binary</h3>
+                    <p>IPv4, Public vs Private, Loopback, APIPA, and binary basics for subnetting.</p>
+                    <div class="card-meta"><span class="badge badge-inter">Math Heavy</span></div>
+                </a>
+
+                <a href="modules/04-subnet-practice.html" class="topic-card lab-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🧪</div>
+                    <h3>Subnetting Practice</h3>
+                    <p>Subnet Masks, CIDR notation (/24, /16), Broadcast addresses, and usable IP ranges.</p>
+                    <div class="card-meta"><span class="badge badge-lab">Priority</span></div>
+                </a>
+            </div>
+        </section>
+
+        <!-- GROUP 2: PHASES 4-6 (LOCAL & DNS) -->
+        <section id="phase4" class="phase-section">
+            <div class="phase-header">
+                <div class="phase-number">04-06</div>
+                <div class="phase-title">
+                    <h2>MAC, Ports & DNS</h2>
+                    <p>Phases 4-6: Local network concepts, protocols, and name resolution.</p>
+                </div>
+            </div>
+
+            <div class="topic-grid">
+                <a href="modules/05-mac-arp.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🆔</div>
+                    <h3>MAC & Local Network</h3>
+                    <p>MAC addresses, ARP (IP mapping), Switches vs Hubs, and VLAN basics.</p>
+                    <div class="card-meta"><span class="badge badge-beginner">Layer 2</span></div>
+                </a>
+
+                <a href="modules/06-dns.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🔍</div>
+                    <h3>DNS & Name Resolution</h3>
+                    <p>How DNS works, record types (A, MX, TXT), and tools like nslookup/dig.</p>
+                    <div class="card-meta"><span class="badge badge-inter">Protocols</span></div>
+                </a>
+
+                <div class="protocol-table-container">
+                    <h3>🔹 Phase 5: Common Ports & Services</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Port</th>
+                                <th>Risk Context</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>SSH</td>
+                                <td>22</td>
+                                <td>Remote Management (Encryption)</td>
+                            </tr>
+                            <tr>
+                                <td>DNS</td>
+                                <td>53</td>
+                                <td>Name resolution (UDP/53)</td>
+                            </tr>
+                            <tr>
+                                <td>HTTP/S</td>
+                                <td>80/443</td>
+                                <td>Web traffic (Encryption check)</td>
+                            </tr>
+                            <tr>
+                                <td>SMB</td>
+                                <td>445</td>
+                                <td>File sharing (High risk/Lateral move)</td>
+                            </tr>
+                            <tr>
+                                <td>RDP</td>
+                                <td>3389</td>
+                                <td>Remote Desktop (Brute force target)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- GROUP 3: PHASES 7-9 (FLOW & LINUX) -->
+        <section id="phase7" class="phase-section">
+            <div class="phase-header">
+                <div class="phase-number">07-09</div>
+                <div class="phase-title">
+                    <h2>Routing, Devices & Linux</h2>
+                    <p>Phases 7-9: Traffic flow, network hardware, and command line mastery.</p>
+                </div>
+            </div>
+
+            <div class="topic-grid">
+                <a href="modules/07-routing.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🛣️</div>
+                    <h3>Routing & Flow</h3>
+                    <p>Default Gateway, NAT (Translation), and Static vs Dynamic routing.</p>
+                    <div class="card-meta"><span class="badge badge-inter">Infrastructure</span></div>
+                </a>
+
+                <a href="modules/08-devices.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🛡️</div>
+                    <h3>Network Devices</h3>
+                    <p>Deep dive into Firewalls, IDS vs IPS, Proxies, and L3 Switches.</p>
+                    <div class="card-meta"><span class="badge badge-inter">Blue Team</span></div>
+                </a>
+
+                <a href="modules/09-linux.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🐧</div>
+                    <h3>Linux Networking</h3>
+                    <p>ip a, netstat, ss, traceroute, tcpdump, and nmap essentials.</p>
+                    <div class="card-meta"><span class="badge badge-lab">CLI Mastery</span></div>
+                </a>
+            </div>
+        </section>
+
+        <!-- GROUP 4: PHASES 10-12 (ANALYSIS & SECURITY) -->
+        <section id="phase10" class="phase-section">
+            <div class="phase-header">
+                <div class="phase-number">10-12</div>
+                <div class="phase-title">
+                    <h2>Analysis, Security & Advanced</h2>
+                    <p>Phases 10-12: Packet analysis, network attacks, and interview readiness.</p>
+                </div>
+            </div>
+
+            <div class="topic-grid">
+                <a href="modules/10-wireshark.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🦈</div>
+                    <h3>Traffic Analysis</h3>
+                    <p>Wireshark packet capture, traffic filtering, and TCP stream analysis.</p>
+                    <div class="card-meta"><span class="badge badge-inter">Packet Level</span></div>
+                </a>
+
+                <a href="modules/11-attacks.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">🎭</div>
+                    <h3>Security Networking</h3>
+                    <p>ARP Spoofing (MITM), Port Scanning types (SYN vs Full), and DNS spoofing.</p>
+                    <div class="card-meta"><span class="badge badge-adv">Red Team</span></div>
+                </a>
+
+                <a href="modules/12-advanced.html" class="topic-card">
+                    <div class="card-progress-toggle" onclick="toggleComplete(this, event)"><svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg></div>
+                    <div class="card-icon">💡</div>
+                    <h3>Advanced Deep Dive</h3>
+                    <p>DHCP (DORA), ICMP, MTU, TCP Flags (PSH/URG), and Load Balancing.</p>
+                    <div class="card-meta"><span class="badge badge-adv">Interview Ready</span></div>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-col">
+                <h4>The Void</h4>
+                <p style="color:var(--text-muted); font-size:0.9rem;">The standard for cybersecurity infrastructure
+                    training.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Priority Mastery</h4>
+                <ul style="color:var(--text-muted); font-size: 0.8rem;">
+                    <li>1. OSI Model</li>
+                    <li>2. TCP/UDP Handshake</li>
+                    <li>3. Subnetting Mastery</li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="#">PDF Guide</a></li>
+                    <li><a href="#">Nmap Cheat Sheet</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Community</h4>
+                <ul>
+                    <li><a href="#">Discord</a></li>
+                    <li><a href="#">GitHub</a></li>
+                </ul>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:50px; color:var(--text-muted); font-size:0.8rem;">
+            &copy; 2026 The Void. Structured Learning Path.
+        </div>
+    </footer>
+
+    <script>
+        // PROGRESS TRACKING
+        const totalCards = document.querySelectorAll('.card-progress-toggle').length;
+        let completedCards = 0;
+
+        function initProgress() {
+            const savedProgress = JSON.parse(localStorage.getItem('voidNetRoadmap12')) || [];
+            const toggles = document.querySelectorAll('.card-progress-toggle');
+
+            toggles.forEach((toggle, index) => {
+                toggle.dataset.id = index;
+                if (savedProgress.includes(index)) {
+                    toggle.classList.add('completed');
+                    completedCards++;
+                }
+            });
+            updateProgressBar();
+        }
+
+        function toggleComplete(element, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            element.classList.toggle('completed');
+            const id = parseInt(element.dataset.id);
+            let savedProgress = JSON.parse(localStorage.getItem('voidNetRoadmap12')) || [];
+
+            if (element.classList.contains('completed')) {
+                completedCards++;
+                if (!savedProgress.includes(id)) savedProgress.push(id);
+            } else {
+                completedCards--;
+                savedProgress = savedProgress.filter(item => item !== id);
+            }
+            localStorage.setItem('voidNetRoadmap12', JSON.stringify(savedProgress));
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const percentage = Math.round((completedCards / totalCards) * 100);
+            document.getElementById('progress-bar').style.width = percentage + '%';
+            document.getElementById('progress-percent').innerText = `${percentage}% (${completedCards}/${totalCards})`;
+        }
+
+        function resetProgress() {
+            if (confirm("Reset roadmap progress?")) {
+                localStorage.removeItem('voidNetRoadmap12');
+                location.reload();
+            }
+        }
+
+        // SCROLL OBSERVER
+        const sections = document.querySelectorAll('.phase-section');
+        const navLinks = document.querySelectorAll('.nav-item');
+        const observerOptions = { root: null, rootMargin: '0px', threshold: 0.4 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.getAttribute('id');
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href') === '#' + id) link.classList.add('active');
+                    });
+                }
+            });
+        }, observerOptions);
+        sections.forEach(section => observer.observe(section));
+
+        window.addEventListener('DOMContentLoaded', initProgress);
+    </script>
+</body>
+
+</html>

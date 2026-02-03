@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDS vs IPS Traffic Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Cyber/Dark Theme Customizations */
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .cyber-border {
+            border: 1px solid #334155;
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.1);
+        }
+
+        .cyber-card {
+            background-color: #1e293b;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .log-entry {
+            font-size: 0.85rem;
+            border-bottom: 1px solid #334155;
+            padding: 4px 0;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .log-entry.alert {
+            border-left: 3px solid #f59e0b;
+            padding-left: 8px;
+            color: #fbbf24;
+        }
+
+        .log-entry.block {
+            border-left: 3px solid #ef4444;
+            padding-left: 8px;
+            color: #f87171;
+        }
+
+        .log-entry.safe {
+            border-left: 3px solid #22c55e;
+            padding-left: 8px;
+            color: #86efac;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Scanline effect for canvas */
+        .monitor-screen {
+            background: #000;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #334155;
+        }
+
+        .monitor-screen::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .server-hit {
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+            box-shadow: 0 0 20px #ef4444;
+            border-color: #ef4444;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Global Navigation -->
+    <nav class="bg-slate-950 border-b border-slate-800 py-2 px-4 flex justify-between items-center z-50 shrink-0">
+        <a href="/modules/08-devices.html"
+            class="text-slate-500 hover:text-blue-400 text-xs font-bold flex items-center gap-2 transition-colors uppercase tracking-widest no-underline">
+            <i class="fa-solid fa-chevron-left"></i> Back to Module 08
+        </a>
+        <span class="text-slate-700 text-xs font-bold tracking-widest">V-LAB 08D</span>
+    </nav>
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-700 p-4 flex justify-between items-center shadow-lg z-10">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-network-wired text-blue-500 text-2xl"></i>
+            <div>
+                <h1 class="text-xl font-bold tracking-wider text-blue-400">NET.GUARD TRAFFIC MONITOR</h1>
+                <p class="text-xs text-slate-400">SECURE SHELL // ROOT ACCESS</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div id="mode-indicator"
+                class="px-4 py-1 rounded bg-yellow-900/50 text-yellow-400 border border-yellow-700 text-sm font-bold uppercase transition-all duration-300">
+                ACTIVE: IDS (Detection)
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row p-4 gap-4 overflow-hidden">
+
+        <!-- Left Panel: Controls & Analogy -->
+        <aside class="w-full md:w-1/4 flex flex-col gap-4">
+
+            <!-- Analogy Box -->
+            <div class="cyber-card p-4 rounded shadow-lg flex-1">
+                <h2 class="text-sm font-bold text-slate-300 mb-3 border-b border-slate-600 pb-2">THE CONCEPT</h2>
+
+                <div class="space-y-4">
+                    <div id="ids-desc"
+                        class="p-3 rounded bg-slate-800 border border-yellow-700/50 transition-all opacity-100">
+                        <div class="flex items-center gap-2 mb-1 text-yellow-400 font-bold">
+                            <i class="fa-solid fa-video"></i> IDS (Detection)
+                        </div>
+                        <p class="text-xs text-slate-400">"A Security Camera"</p>
+                        <p class="text-xs mt-2 leading-relaxed">It records the theft and sends an alert, but <span
+                                class="text-red-400">doesn't stop it</span>.</p>
+                    </div>
+
+                    <div id="ips-desc"
+                        class="p-3 rounded bg-slate-800 border border-transparent transition-all opacity-50">
+                        <div class="flex items-center gap-2 mb-1 text-green-400 font-bold">
+                            <i class="fa-solid fa-lock"></i> IPS (Prevention)
+                        </div>
+                        <p class="text-xs text-slate-400">"An Automated Door Lock"</p>
+                        <p class="text-xs mt-2 leading-relaxed">It spots the thief and <span
+                                class="text-green-400">locks the door instantly</span>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="bg-slate-800 p-4 rounded cyber-border">
+                <h3 class="text-xs font-bold text-slate-400 mb-3 uppercase">Configuration</h3>
+
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center justify-between bg-slate-900 p-2 rounded border border-slate-700">
+                        <span class="text-sm">Security Mode</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="modeToggle" class="sr-only peer">
+                            <div
+                                class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                            </div>
+                        </label>
+                    </div>
+
+                    <button onclick="spawnWave('normal')"
+                        class="w-full py-2 bg-blue-900/50 hover:bg-blue-800 border border-blue-500 text-blue-200 text-sm rounded transition-colors">
+                        <i class="fa-solid fa-users mr-2"></i> Normal Traffic
+                    </button>
+                    <button onclick="spawnWave('attack')"
+                        class="w-full py-2 bg-red-900/50 hover:bg-red-800 border border-red-500 text-red-200 text-sm rounded transition-colors">
+                        <i class="fa-solid fa-bug mr-2"></i> Launch Attack
+                    </button>
+                    <button onclick="spawnWave('mixed')"
+                        class="w-full py-2 bg-purple-900/50 hover:bg-purple-800 border border-purple-500 text-purple-200 text-sm rounded transition-colors">
+                        <i class="fa-solid fa-shuffle mr-2"></i> Mixed Traffic
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center: Visual Simulation -->
+        <div class="flex-1 flex flex-col gap-2">
+            <div class="monitor-screen flex-1 rounded relative bg-black" id="canvas-container">
+                <!-- Labels overlaid on canvas -->
+                <div class="absolute top-4 left-4 text-xs font-mono text-slate-500">SOURCE: INTERNET</div>
+                <div class="absolute top-4 right-4 text-xs font-mono text-slate-500">DEST: SERVER</div>
+
+                <!-- The Canvas -->
+                <canvas id="trafficCanvas" class="w-full h-full block"></canvas>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="h-16 bg-slate-800 rounded flex items-center justify-around px-4 border-t border-slate-700">
+                <div class="text-center">
+                    <div class="text-xs text-slate-500 uppercase">Packets Processed</div>
+                    <div id="stat-total" class="text-xl font-mono font-bold text-white">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-slate-500 uppercase">Alerts Triggered</div>
+                    <div id="stat-alerts" class="text-xl font-mono font-bold text-yellow-500">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-slate-500 uppercase">Attacks Blocked</div>
+                    <div id="stat-blocked" class="text-xl font-mono font-bold text-green-500">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-slate-500 uppercase">Server Compromises</div>
+                    <div id="stat-breaches" class="text-xl font-mono font-bold text-red-500">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Logs -->
+        <aside class="w-full md:w-1/4 bg-slate-900 border-l border-slate-700 flex flex-col">
+            <div class="p-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="text-xs font-bold text-slate-300 uppercase"><i class="fa-solid fa-terminal mr-2"></i>System
+                    Log</h3>
+                <button onclick="clearLog()" class="text-xs text-slate-500 hover:text-white">Clear</button>
+            </div>
+            <div id="log-container"
+                class="flex-1 overflow-y-auto p-2 font-mono space-y-1 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
+                <div class="text-xs text-slate-600 italic">System initialized... waiting for traffic.</div>
+            </div>
+        </aside>
+
+    </main>
+
+    <script>
+        // --- Game State & Config ---
+        const canvas = document.getElementById('trafficCanvas');
+        const ctx = canvas.getContext('2d');
+        const logContainer = document.getElementById('log-container');
+
+        let width, height;
+        let animationId;
+
+        let packets = [];
+        let particles = []; // For explosions/effects
+        let stats = { total: 0, alerts: 0, blocked: 0, breaches: 0 };
+
+        // Mode: 'IDS' or 'IPS'
+        let currentMode = 'IDS';
+
+        // Colors
+        const COLORS = {
+            safe: '#4ade80',    // Green-400
+            attack: '#ef4444',  // Red-500
+            bg: '#000000',
+            firewall: '#3b82f6' // Blue-500
+        };
+
+        // --- Resize Handler ---
+        function resize() {
+            const container = document.getElementById('canvas-container');
+            width = container.clientWidth;
+            height = container.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- Classes ---
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 4;
+                this.speedY = (Math.random() - 0.5) * 4;
+                this.life = 1.0; // Opacity
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= 0.05;
+            }
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class Packet {
+            constructor(type) {
+                this.type = type; // 'safe' or 'attack'
+                this.x = 20;
+                this.y = height / 2 + (Math.random() - 0.5) * 40; // Slight jitter in lane
+                this.size = 6;
+                this.speed = 3 + Math.random();
+                this.color = type === 'safe' ? COLORS.safe : COLORS.attack;
+                this.processed = false; // Has it passed the firewall/scanner?
+                this.dead = false;
+            }
+
+            update() {
+                this.x += this.speed;
+
+                // Firewall/Device Position (Middle of screen)
+                const firewallX = width / 2;
+
+                // Check interactions when passing the middle
+                if (!this.processed && this.x >= firewallX) {
+                    this.processed = true;
+                    this.handleSecurityCheck();
+                }
+
+                // Check destination arrival
+                if (this.x > width - 40) {
+                    this.arrive();
+                }
+            }
+
+            handleSecurityCheck() {
+                stats.total++;
+                updateStats();
+
+                if (this.type === 'attack') {
+                    if (currentMode === 'IDS') {
+                        // IDS: Log it, but let it pass
+                        stats.alerts++;
+                        addLog('ALERT', 'Malicious packet detected [SIGNATURE MATCH]', 'alert');
+                        // Visual flash on passing
+                        createParticles(this.x, this.y, '#f59e0b', 5);
+                    } else {
+                        // IPS: Block it (kill it)
+                        stats.blocked++;
+                        addLog('BLOCKED', 'Malicious packet dropped by firewall', 'block');
+                        createParticles(this.x, this.y, COLORS.attack, 10);
+                        this.dead = true;
+                    }
+                } else {
+                    // Safe packet
+                    addLog('INFO', 'Allowed normal traffic', 'safe');
+                }
+            }
+
+            arrive() {
+                this.dead = true;
+                if (this.type === 'attack') {
+                    // It hit the server!
+                    stats.breaches++;
+                    updateStats();
+                    triggerServerShake();
+                    addLog('CRITICAL', 'SERVER COMPROMISED! Unauthorized Access.', 'block');
+                } else {
+                    // Safe arrival
+                    createParticles(this.x, this.y, COLORS.safe, 3);
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+
+                // Draw packet body
+                ctx.beginPath();
+                if (this.type === 'attack') {
+                    // Triangle for attack
+                    ctx.moveTo(this.x + 6, this.y);
+                    ctx.lineTo(this.x - 4, this.y - 5);
+                    ctx.lineTo(this.x - 4, this.y + 5);
+                } else {
+                    // Circle for safe
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                }
+                ctx.fill();
+
+                // Trail effect
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath();
+                ctx.arc(this.x - 10, this.y, this.size - 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // --- Simulation Logic ---
+
+        function spawnWave(type) {
+            let count = 0;
+            const max = 5;
+            const interval = setInterval(() => {
+                let pType = 'safe';
+                if (type === 'attack') pType = 'attack';
+                if (type === 'mixed') pType = Math.random() > 0.5 ? 'attack' : 'safe';
+
+                packets.push(new Packet(pType));
+                count++;
+                if (count >= max) clearInterval(interval);
+            }, 300);
+        }
+
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        function triggerServerShake() {
+            const container = document.getElementById('canvas-container');
+            container.classList.remove('server-hit');
+            void container.offsetWidth; // trigger reflow
+            container.classList.add('server-hit');
+            setTimeout(() => container.classList.remove('server-hit'), 500);
+        }
+
+        function updateStats() {
+            document.getElementById('stat-total').innerText = stats.total;
+            document.getElementById('stat-alerts').innerText = stats.alerts;
+            document.getElementById('stat-blocked').innerText = stats.blocked;
+            document.getElementById('stat-breaches').innerText = stats.breaches;
+        }
+
+        function addLog(type, msg, styleClass) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${styleClass}`;
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+            entry.innerHTML = `<span class="opacity-50">[${time}]</span> <strong>${type}:</strong> ${msg}`;
+
+            logContainer.prepend(entry);
+
+            // Keep log clean
+            if (logContainer.children.length > 50) {
+                logContainer.lastElementChild.remove();
+            }
+        }
+
+        function clearLog() {
+            logContainer.innerHTML = '';
+            stats = { total: 0, alerts: 0, blocked: 0, breaches: 0 };
+            updateStats();
+        }
+
+        // --- Render Loop ---
+
+        function drawInfrastructure() {
+            const midX = width / 2;
+            const centerY = height / 2;
+
+            // 1. Draw Connection Lines
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(40, centerY);
+            ctx.lineTo(width - 40, centerY);
+            ctx.stroke();
+
+            // 2. Draw Source (Internet)
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(10, centerY - 25, 40, 50);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '20px FontAwesome';
+            ctx.fillText('\uf0ac', 20, centerY + 7); // Globe Icon
+
+            // 3. Draw Destination (Server)
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(width - 50, centerY - 25, 40, 50);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('\uf233', width - 40, centerY + 7); // Server Icon
+
+            // 4. Draw Security Device (The Gate)
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = currentMode === 'IDS' ? '#f59e0b' : '#22c55e';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = ctx.strokeStyle;
+
+            ctx.beginPath();
+            ctx.arc(midX, centerY, 30, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Device Icon
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '24px FontAwesome';
+            const iconCode = currentMode === 'IDS' ? '\uf03d' : '\uf023'; // Video Camera vs Lock
+            ctx.fillText(iconCode, midX - 10, centerY + 8);
+
+            // Device Label
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.font = '12px monospace';
+            ctx.fillText(currentMode, midX - 10, centerY + 45);
+        }
+
+        function loop() {
+            // Clear screen (with slight fade for trails, optional, but we are doing full clear here for crispness)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+
+            drawInfrastructure();
+
+            // Update Packets
+            for (let i = packets.length - 1; i >= 0; i--) {
+                const p = packets[i];
+                p.update();
+                p.draw();
+                if (p.dead) packets.splice(i, 1);
+            }
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw();
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        // --- Toggle Logic ---
+
+        const modeToggle = document.getElementById('modeToggle');
+        const modeIndicator = document.getElementById('mode-indicator');
+        const idsDesc = document.getElementById('ids-desc');
+        const ipsDesc = document.getElementById('ips-desc');
+
+        modeToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                // IPS Mode
+                currentMode = 'IPS';
+                modeIndicator.innerText = 'ACTIVE: IPS (Prevention)';
+                modeIndicator.classList.remove('bg-yellow-900/50', 'text-yellow-400', 'border-yellow-700');
+                modeIndicator.classList.add('bg-green-900/50', 'text-green-400', 'border-green-700');
+
+                idsDesc.style.opacity = '0.5';
+                idsDesc.classList.remove('border-yellow-700/50');
+                ipsDesc.style.opacity = '1';
+                ipsDesc.classList.add('border-green-700/50');
+
+                addLog('SYSTEM', 'Switched to INTRUSION PREVENTION MODE', 'safe');
+            } else {
+                // IDS Mode
+                currentMode = 'IDS';
+                modeIndicator.innerText = 'ACTIVE: IDS (Detection)';
+                modeIndicator.classList.add('bg-yellow-900/50', 'text-yellow-400', 'border-yellow-700');
+                modeIndicator.classList.remove('bg-green-900/50', 'text-green-400', 'border-green-700');
+
+                idsDesc.style.opacity = '1';
+                idsDesc.classList.add('border-yellow-700/50');
+                ipsDesc.style.opacity = '0.5';
+                ipsDesc.classList.remove('border-green-700/50');
+
+                addLog('SYSTEM', 'Switched to INTRUSION DETECTION MODE', 'alert');
+            }
+        });
+
+        // Start
+        loop();
+
+        // Initial welcome
+        setTimeout(() => spawnWave('normal'), 1000);
+
+    </script>
+</body>
+
+</html>

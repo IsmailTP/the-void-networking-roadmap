@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO METADATA -->
+    <meta name="description"
+        content="Learn the essential hardware of cybersecurity: Routers, Switches, Firewalls, and IDS/IPS. Understand how they protect and manage data flow.">
+    <meta name="keywords"
+        content="Network Devices, Router vs Switch, Firewall basics, IDS vs IPS, Proxy Server explained, Cybersecurity for beginners">
+    <meta name="author" content="The Void">
+
+    <title>The Void | Network Devices</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- VARIABLES --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 1000;
+        }
+
+        .reading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .top-nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        header {
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--text-main);
+        }
+
+        .module-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .meta-badge.difficulty {
+            color: var(--accent);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        /* --- LAYOUT GRID --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 50px;
+            position: relative;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+
+        .toc {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(5px);
+        }
+
+        .toc h4 {
+            margin-bottom: 15px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .toc a {
+            display: block;
+            padding: 8px 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-decoration: none;
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            margin-left: -10px;
+            transition: all 0.2s;
+        }
+
+        .toc a:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .toc a.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* --- CONTENT STYLES --- */
+        main h2 {
+            font-size: 1.8rem;
+            margin: 0 0 15px;
+            color: var(--text-main);
+            scroll-margin-top: 100px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+        }
+
+        .section-block {
+            margin-bottom: 60px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media(max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .info-card h4 {
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .simple-flow {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: #0d1117;
+            border-radius: 8px;
+            margin: 20px 0;
+            justify-content: center;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+        }
+
+        .flow-node {
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 4px;
+            background: var(--bg-card);
+        }
+
+        .flow-arrow {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .security-mindset {
+            background: rgba(239, 68, 68, 0.05);
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .quick-check {
+            background: rgba(34, 197, 94, 0.05);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            margin-top: 20px;
+        }
+
+        .btn-sim {
+            display: block;
+            background: var(--bg-card);
+            border: 1px dashed var(--accent);
+            color: var(--accent);
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            text-decoration: none;
+            margin: 20px 0;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-sim:hover {
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        ul.simple-list {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        ul.simple-list li {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        .module-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-next {
+            background: var(--accent);
+            color: #000;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        @media(max-width: 900px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="reading-progress">
+        <div class="reading-bar" id="reading-bar"></div>
+    </div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="../index.html" class="back-link">← Back to Roadmap</a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 08</span>
+        </nav>
+
+        <header>
+            <div class="module-meta">
+                <span class="meta-badge difficulty">Beginner</span>
+                <span class="meta-badge">⏱ 45 Minutes</span>
+                <span class="meta-badge">Prereq: Module 05 & 06</span>
+            </div>
+            <h1>Network Devices</h1>
+            <p style="max-width: 700px;">To defend a network, you must know the hardware. Learn the structured role of
+                Routers, Switches, Firewalls, and more.</p>
+        </header>
+
+        <div class="layout-grid">
+            <aside class="sidebar">
+                <div class="toc">
+                    <h4>On this page</h4>
+                    <a href="#router">1. The Router</a>
+                    <a href="#switch">2. The Switch</a>
+                    <a href="#firewall">3. The Firewall</a>
+                    <a href="#ids">4. IDS</a>
+                    <a href="#ips">5. IPS</a>
+                    <a href="#proxy">6. Proxy Server</a>
+                    <a href="#journey">7. The Journey</a>
+                    <a href="#recap">📌 Recap</a>
+                </div>
+            </aside>
+
+            <main>
+                <!-- 1. ROUTER -->
+                <section id="router" class="section-block">
+                    <h2>1. The Router</h2>
+
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>What Is It?</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">The digital postmaster that connects
+                                different networks together.</p>
+                        </div>
+                        <div class="info-card">
+                            <h4>Problem It Solves</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">Allows your home devices to talk to the
+                                outside world (Internet).</p>
+                        </div>
+                    </div>
+
+                    <div class="simple-flow">
+                        <div class="flow-node">Home Devices</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Switch</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node" style="border-color: var(--accent);">Router</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Internet/ISP</div>
+                    </div>
+                    <p
+                        style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: -10px; margin-bottom: 25px;">
+                        📍 Usually placed between your internal network and your Internet Service Provider (ISP).
+                    </p>
+
+                    <h3>How It Works</h3>
+                    <p>It reads the <strong>IP Address</strong> on a packet and sends it to the best path to reach its
+                        destination. It chooses the best path using something called a routing table (a list of known
+                        network paths).</p>
+
+                    <h3>Real-Life Example</h3>
+                    <p>Sending a letter to a friend in another country. The local post office sorts it and sends it to
+                        the international terminal.</p>
+
+                    <h3>What Happens If It Fails?</h3>
+                    <ul class="simple-list">
+                        <li>The entire building loses Internet access.</li>
+                        <li>Internal devices can still talk to each other, but not outside.</li>
+                    </ul>
+
+                    <div class="security-mindset">
+                        <h4 style="margin-bottom:5px; color:#f87171;">🛡️ Security Mindset</h4>
+                        <p style="margin-bottom:0; font-size:0.9rem;">In small networks, routers may act as the first
+                            line of defense. In larger networks, firewalls usually handle security.</p>
+                    </div>
+
+                    <div class="info-card" style="margin-top:20px; border-color: var(--accent);">
+                        <h4 style="color: var(--accent);">Common Confusion</h4>
+                        <ul class="simple-list" style="margin-bottom:0;">
+                            <li><strong>Router</strong> connects networks using IP addresses.</li>
+                            <li><strong>Switch</strong> connects devices inside a network using MAC addresses.</li>
+                        </ul>
+                    </div>
+
+                    <a href="/sim/routing1.html" class="btn-sim">Launch Router Simulator</a>
+
+                    <div class="quick-check">
+                        <h4 style="margin-bottom:10px; color: var(--accent);">✅ Quick Check</h4>
+                        <ul class="simple-list" style="margin-bottom:0;">
+                            <li>Does a Router use MAC addresses or IP addresses? (Answer: IP)</li>
+                            <li>Does it connect devices inside a room, or connect networks? (Answer: Networks)</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- 2. SWITCH -->
+                <section id="switch" class="section-block">
+                    <h2>2. The Switch</h2>
+
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>What Is It?</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">A smart power strip for data that connects
+                                devices within a single network.</p>
+                        </div>
+                        <div class="info-card">
+                            <h4>Problem It Solves</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">Stops data collisions by creating a direct
+                                line between two devices.</p>
+                        </div>
+                    </div>
+
+                    <div class="simple-flow">
+                        <div class="flow-node">PC A</div>
+                        <div class="flow-arrow">⟷</div>
+                        <div class="flow-node" style="border-color: var(--accent);">Switch</div>
+                        <div class="flow-arrow">⟷</div>
+                        <div class="flow-node">Printer</div>
+                    </div>
+                    <p
+                        style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: -10px; margin-bottom: 25px;">
+                        📍 Usually placed inside your office/home connecting PCs and printers.
+                    </p>
+
+                    <h3>How It Works</h3>
+                    <p>It uses <strong>MAC Addresses</strong> to learn where devices are plugged in. It stores these
+                        addresses in something called a MAC table so it remembers where devices are connected.</p>
+
+                    <h3>Real-Life Example</h3>
+                    <p>Passing a note to a specific person in a classroom, rather than shouting it to the whole room.
+                    </p>
+
+                    <h3>What Happens If It Fails?</h3>
+                    <ul class="simple-list">
+                        <li>Devices in the office/home cannot talk to each other.</li>
+                        <li>You cannot print or share files locally.</li>
+                    </ul>
+
+                    <div class="security-mindset">
+                        <h4 style="margin-bottom:5px; color:#f87171;">🛡️ Security Mindset</h4>
+                        <p style="margin-bottom:0; font-size:0.9rem;">Hackers try to "flood" switches to make them fail
+                            and act like a Hub (broadcasting all data), allowing them to steal passwords.</p>
+                    </div>
+
+                    <a href="/sim/vlan.html" class="btn-sim">Launch Switch Simulator</a>
+
+                    <div class="quick-check">
+                        <h4 style="margin-bottom:10px; color: var(--accent);">✅ Quick Check</h4>
+                        <ul class="simple-list" style="margin-bottom:0;">
+                            <li>Does a Switch use IP or MAC? (Answer: MAC)</li>
+                            <li>Does it connect to the internet directly? (Answer: No, it connects to a Router)</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- 3. FIREWALL -->
+                <section id="firewall" class="section-block">
+                    <h2>3. The Firewall</h2>
+
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>What Is It?</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">A security guard that approves or denies
+                                traffic based on rules.</p>
+                        </div>
+                        <div class="info-card">
+                            <h4>Problem It Solves</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">Prevents hackers and unauthorized connections
+                                from entering your network.</p>
+                        </div>
+                    </div>
+
+                    <div class="simple-flow">
+                        <div class="flow-node">Internet</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node" style="border-color: var(--danger);">Firewall</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Internal Network</div>
+                    </div>
+                    <p
+                        style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: -10px; margin-bottom: 25px;">
+                        📍 Usually placed between the Internet and your internal network.
+                    </p>
+
+                    <h3>How It Works</h3>
+                    <p>It checks a list of rules (Ex: "Block Port 23"). Rules are processed in order. The first matching
+                        rule decides what happens.</p>
+
+                    <h3>Real-Life Example</h3>
+                    <p>A bouncer at a club checking IDs against a guest list.</p>
+
+                    <h3>What Happens If It Fails?</h3>
+                    <ul class="simple-list">
+                        <li>If it fails "Open": Anyone can enter (Dangerous).</li>
+                        <li>If it fails "Closed": No one can enter or leave (No Internet).</li>
+                    </ul>
+
+                    <div class="security-mindset">
+                        <h4 style="margin-bottom:5px; color:#f87171;">🛡️ Security Mindset</h4>
+                        <p style="margin-bottom:0; font-size:0.9rem;">A misconfigured firewall is the #1 way hackers get
+                            in. Default policy should always be "Block All" unless needed.</p>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0;">
+                        <a href="/sim/firewall_logic.html" class="btn-sim" style="margin: 0; flex: 1;">Launch Logic
+                            Sim</a>
+                        <a href="/sim/firewall_pro.html" class="btn-sim"
+                            style="margin: 0; flex: 1; border-color: var(--purple); color: var(--purple);">Launch Pro
+                            Sim</a>
+                    </div>
+
+                    <div class="quick-check">
+                        <h4 style="margin-bottom:10px; color: var(--accent);">✅ Quick Check</h4>
+                        <ul class="simple-list" style="margin-bottom:0;">
+                            <li>What does "Stateful" mean? (Answer: Remembers connections)</li>
+                            <li>Should the default rule be Allow or Deny? (Answer: Deny)</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- 4. IDS -->
+                <section id="ids" class="section-block">
+                    <h2>4. IDS (Intrusion Detection System)</h2>
+
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>What Is It?</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">A burglar alarm that watches network traffic.
+                            </p>
+                        </div>
+                        <div class="info-card">
+                            <h4>Problem It Solves</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">Detects stealthy attacks that might have
+                                slipped past the firewall.</p>
+                        </div>
+                    </div>
+
+                    <div class="simple-flow">
+                        <div class="flow-node">Traffic Copy</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node" style="border-color: var(--warning);">IDS (Passive)</div>
+                    </div>
+                    <p
+                        style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: -10px; margin-bottom: 25px;">
+                        📍 Placed near the firewall to monitor or block malicious traffic.
+                    </p>
+
+                    <h3>How It Works</h3>
+                    <p>It compares traffic against a database of known attack "signatures." If it sees a match, it sends
+                        an alert.</p>
+
+                    <h3>Real-Life Example</h3>
+                    <p>A security camera recording a break-in. It sees the crime, but cannot physically stop the thief.
+                    </p>
+
+                    <h3>What Happens If It Fails?</h3>
+                    <ul class="simple-list">
+                        <li>Attacks happen without you knowing.</li>
+                        <li>Traffic still flows normally (it sits on the side).</li>
+                    </ul>
+
+                    <a href="/sim/ids.html" class="btn-sim">Launch IDS Simulator</a>
+
+                    <div class="quick-check">
+                        <h4 style="margin-bottom:10px; color: var(--accent);">✅ Quick Check</h4>
+                        <ul class="simple-list" style="margin-bottom:0;">
+                            <li>Does an IDS stop the attack? (Answer: No, it alerts)</li>
+                            <li>Does it sit directly in the path of traffic? (Answer: No, usually passive)</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- 5. IPS -->
+                <section id="ips" class="section-block">
+                    <h2>5. IPS (Intrusion Prevention System)</h2>
+
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>What Is It?</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">An armed guard that stops attacks instantly.
+                            </p>
+                        </div>
+                        <div class="info-card">
+                            <h4>Problem It Solves</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">Automatically blocks malicious traffic before
+                                it reaches the server.</p>
+                        </div>
+                    </div>
+
+                    <div class="simple-flow">
+                        <div class="flow-node">Internet</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node" style="border-color: var(--danger);">IPS (Inline)</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Server</div>
+                    </div>
+                    <p
+                        style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: -10px; margin-bottom: 25px;">
+                        📍 Placed near the firewall to monitor or block malicious traffic.
+                    </p>
+
+                    <h3>How It Works</h3>
+                    <p>It sits <strong>inline</strong> (in the middle). If it detects an attack, it drops the packet
+                        immediately.</p>
+
+                    <div class="info-card" style="margin-top:20px;">
+                        <h4>IDS vs IPS (Quick Comparison)</h4>
+                        <p style="margin-bottom:0; font-size:0.9rem;">
+                            <strong>IDS</strong> = Alarm (Detects). <br>
+                            <strong>IPS</strong> = Guard (Detects + Blocks).
+                        </p>
+                    </div>
+
+                    <h3>Real-Life Example</h3>
+                    <p>A guard dog that bites an intruder trying to jump the fence.</p>
+
+                    <h3>What Happens If It Fails?</h3>
+                    <ul class="simple-list">
+                        <li>If it breaks, internet connection is lost (because it sits in the middle).</li>
+                        <li>It might block legitimate users by mistake (False Positive).</li>
+                    </ul>
+
+                    <div class="quick-check">
+                        <h4 style="margin-bottom:10px; color: var(--accent);">✅ Quick Check</h4>
+                        <ul class="simple-list" style="margin-bottom:0;">
+                            <li>Does an IPS stop the attack? (Answer: Yes)</li>
+                            <li>What is the risk? (Answer: Blocking real users)</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- 6. PROXY -->
+                <section id="proxy" class="section-block">
+                    <h2>6. Proxy Server</h2>
+
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>What Is It?</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">A middleman that makes requests on your
+                                behalf.</p>
+                        </div>
+                        <div class="info-card">
+                            <h4>Problem It Solves</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">Hides your identity or filters what websites
+                                you can visit.</p>
+                        </div>
+                    </div>
+
+                    <div class="simple-flow">
+                        <div class="flow-node">You</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node" style="border-color: var(--purple);">Proxy</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Website</div>
+                    </div>
+                    <p
+                        style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: -10px; margin-bottom: 25px;">
+                        📍 Can sit between users and the internet (forward proxy) or between internet and servers
+                        (reverse proxy).
+                    </p>
+
+                    <h3>How It Works</h3>
+                    <p>You talk to the proxy. The proxy talks to the website. The website only sees the proxy, not you.
+                    </p>
+
+                    <h3>Real-Life Example</h3>
+                    <p>A lawyer speaking for a client in court. The client doesn't speak directly to the judge.</p>
+
+                    <h3>What Happens If It Fails?</h3>
+                    <ul class="simple-list">
+                        <li>You cannot access the websites the proxy was handling.</li>
+                        <li>Your real IP might be exposed if you bypass it.</li>
+                    </ul>
+
+                    <div class="security-mindset">
+                        <h4 style="margin-bottom:5px; color:#f87171;">🛡️ Security Mindset</h4>
+                        <p style="margin-bottom:0; font-size:0.9rem;">Hackers use proxies to hide their location when
+                            attacking. Companies use them to inspect employee traffic.</p>
+                    </div>
+
+                    <a href="/sim/proxy.html" class="btn-sim">Launch Proxy Simulator</a>
+
+                    <div class="quick-check">
+                        <h4 style="margin-bottom:10px; color: var(--accent);">✅ Quick Check</h4>
+                        <ul class="simple-list" style="margin-bottom:0;">
+                            <li>Does the website see your IP address? (Answer: No)</li>
+                            <li>Can a proxy block websites? (Answer: Yes)</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FULL TRAFFIC JOURNEY -->
+                <section id="journey" class="section-block">
+                    <h2>7. The Traffic Journey</h2>
+                    <p>When you request a website, your data travels through these devices in order:</p>
+
+                    <div class="simple-flow" style="flex-wrap: wrap;">
+                        <div class="flow-node">Your Laptop</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Switch</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Router</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Firewall</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Internet</div>
+                    </div>
+
+                    <p>The <strong>Switch</strong> moves data out of your room. The <strong>Router</strong> moves it out
+                        of the building. The <strong>Firewall</strong> checks it for safety before it leaves.</p>
+                </section>
+
+                <!-- RECAP -->
+                <section id="recap" style="border-bottom: none;">
+                    <div
+                        style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3>📌 Recap</h3>
+                        <ul class="simple-list" style="color: var(--text-main);">
+                            <li><strong>Router:</strong> Connects Networks (IP).</li>
+                            <li><strong>Switch:</strong> Connects Devices (MAC).</li>
+                            <li><strong>Firewall:</strong> The Gatekeeper (Allow/Deny).</li>
+                            <li><strong>IDS:</strong> The Camera (Alerts).</li>
+                            <li><strong>IPS:</strong> The Guard (Blocks).</li>
+                            <li><strong>Proxy:</strong> The Middleman (Hides Identity).</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FOOTER NAV -->
+                <div class="module-footer">
+                    <a href="07-routing.html" class="back-link">← Previous Module</a>
+                    <div>
+                        <div
+                            style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">
+                            Next: Troubleshooting & Command Line</div>
+                        <a href="/modules/09-linux.html" class="btn-next">Next Module →</a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Reading Progress
+        window.addEventListener("scroll", () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById("reading-bar").style.width = progress + "%";
+        });
+
+        // TOC Active Link
+        const sections = document.querySelectorAll("main section");
+        const tocLinks = document.querySelectorAll(".toc a");
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach(link => {
+                        link.classList.remove("active");
+                        if (link.getAttribute("href") === "#" + entry.target.id) {
+                            link.classList.add("active");
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(section => observer.observe(section));
+
+        // Progress Tracking
+        window.onload = function () {
+            const MODULE_ID = 8;
+            let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
+            if (!savedProgress.includes(MODULE_ID)) {
+                savedProgress.push(MODULE_ID);
+                localStorage.setItem('voidNetProgress', JSON.stringify(savedProgress));
+            }
+        };
+    </script>
+</body>
+
+</html>

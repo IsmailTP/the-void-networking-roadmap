@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO METADATA -->
+    <meta name="description" content="Master DNS Fundamentals: Learn how name resolution works, record types (A, MX, TXT), and how to use dig and nslookup for network reconnaissance.">
+    <meta name="keywords" content="DNS, Domain Name System, A Record, MX Record, CNAME, TXT Record, dig, nslookup, DNS Poisoning, DNS Tunneling">
+    <meta name="author" content="The Void">
+    
+    <title>The Void | DNS & Name Resolution</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- VARIABLES --- */
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;        
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 1000;
+        }
+        .reading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .top-nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        header { margin-bottom: 50px; }
+        h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--text-main); }
+        .module-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.05);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .meta-badge.difficulty { color: var(--accent); border-color: rgba(34, 197, 94, 0.3); }
+
+        /* --- LAYOUT GRID --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 50px;
+            position: relative;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+        .toc {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(5px);
+        }
+        .toc h4 { margin-bottom: 15px; color: var(--text-main); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
+        .toc a { 
+            display: block; 
+            padding: 8px 0; 
+            color: var(--text-muted); 
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            margin-left: -10px;
+            transition: all 0.2s;
+        }
+        .toc a:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
+        .toc a.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* --- CONTENT STYLES --- */
+        main h2 { 
+            font-size: 1.8rem; 
+            margin: 0 0 10px; 
+            color: var(--text-main); 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            scroll-margin-top: 100px;
+        }
+
+        .btn-sim {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            margin-bottom: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .btn-sim:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent-glow); }
+
+        main section {
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        h3 { font-size: 1.3rem; margin: 30px 0 10px; color: var(--text-main); }
+        p { margin-bottom: 20px; color: var(--text-muted); font-size: 1.05rem; }
+
+        .terminal {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            color: #c9d1d9;
+        }
+        .terminal-header { display: flex; gap: 6px; margin-bottom: 15px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
+        .cmd { color: var(--accent); }
+
+        /* --- TABLES --- */
+        .table-container { overflow-x: auto; margin: 25px 0; border: 1px solid var(--border); border-radius: var(--radius); }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
+        th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); border-bottom: 1px solid var(--border); }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.9rem; }
+
+        /* --- SPECIAL BOXES --- */
+        .hackers-note {
+            background: rgba(139, 92, 246, 0.08);
+            border-left: 4px solid var(--purple);
+            padding: 20px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 25px 0;
+        }
+        .hackers-note h4 { color: var(--purple); margin-bottom: 5px; font-size: 1rem; }
+
+        .security-check {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: var(--radius);
+            padding: 15px 20px;
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+        }
+        .sc-content h4 { color: var(--warning); margin-bottom: 5px; font-size: 1rem; }
+
+        .mini-lab {
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px dashed var(--accent);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .mini-lab h4 { color: var(--accent); margin-bottom: 10px; font-size: 1rem; }
+
+        .module-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-next {
+            background: var(--accent);
+            color: #000;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-next:hover { transform: translateY(-2px); box-shadow: 0 0 15px var(--accent-glow); }
+
+        /* DNS Hierarchy Visual */
+        .dns-flow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin: 30px 0;
+        }
+        .dns-node {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: var(--font-code);
+            width: 250px;
+            text-align: center;
+        }
+        .dns-arrow { color: var(--text-muted); font-size: 1.2rem; }
+
+        @media(max-width: 900px) {
+            .layout-grid { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="reading-progress">
+        <div class="reading-bar" id="reading-bar"></div>
+    </div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="../index.html" class="back-link">← Back to Roadmap</a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 05</span>
+        </nav>
+
+        <header>
+            <div class="module-meta">
+                <span class="meta-badge difficulty">Intermediate</span>
+                <span class="meta-badge">⏱ 75 Minutes</span>
+                <span class="meta-badge">Prereq: Module 03</span>
+            </div>
+            <h1>DNS & Name Resolution</h1>
+            <p style="max-width: 700px;">The Domain Name System (DNS) is the phonebook of the internet. It translates human-friendly names like <code>google.com</code> into machine-ready IP addresses.</p>
+        </header>
+
+        <div class="layout-grid">
+            <aside class="sidebar">
+                <div class="toc">
+                    <h4>On this page</h4>
+                    <a href="#how-it-works">1. How DNS Works</a>
+                    <a href="#records">2. DNS Record Types</a>
+                    <a href="#resolution">3. Resolution Process</a>
+                    <a href="#tooling">4. Recon Tooling</a>
+                    <a href="#attacks">5. DNS Attack Vectors</a>
+                    <a href="#recap">📌 Module Recap</a>
+                </div>
+            </aside>
+
+            <main>
+                <!-- 1. HOW DNS WORKS -->
+                <section id="how-it-works">
+                    <h2>1. How DNS Works</h2>
+                    <p>DNS is a distributed, hierarchical database. No single server holds all the data. Instead, authority is delegated down a chain.</p>
+                    
+                    <div class="dns-flow">
+                        <div class="dns-node" style="border-color: var(--purple);">Root Servers (.)</div>
+                        <div class="dns-arrow">↓</div>
+                        <div class="dns-node" style="border-color: var(--warning);">TLD Servers (.com, .org)</div>
+                        <div class="dns-arrow">↓</div>
+                        <div class="dns-node" style="border-color: var(--accent);">Authoritative Servers (google.com)</div>
+                    </div>
+
+                    <div class="hackers-note">
+                        <h4>🔍 Recursive vs. Iterative</h4>
+                        <p><strong>Recursive:</strong> Your computer asks the Resolver (e.g., 8.8.8.8) to do all the work and just come back with the answer.<br>
+                        <strong>Iterative:</strong> The Resolver asks each level of the hierarchy itself until it finds the target.</p>
+                    </div>
+                </section>
+
+                <!-- 2. RECORD TYPES -->
+                <section id="records">
+                    <h2>2. DNS Record Types</h2>
+                    <p>DNS doesn't just store IPs. It stores various records that define how a domain behaves.</p>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Record</th><th>Description</th><th>Purpose</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><strong>A</strong></td><td>IPv4 Address</td><td>Maps name to IPv4</td></tr>
+                                <tr><td><strong>AAAA</strong></td><td>IPv6 Address</td><td>Maps name to IPv6</td></tr>
+                                <tr><td><strong>CNAME</strong></td><td>Canonical Name</td><td>An alias (points to another domain)</td></tr>
+                                <tr><td><strong>MX</strong></td><td>Mail Exchange</td><td>Directs email to the right server</td></tr>
+                                <tr><td><strong>TXT</strong></td><td>Text Record</td><td>Often used for SPF, DKIM, and Verification</td></tr>
+                                <tr><td><strong>NS</strong></td><td>Name Server</td><td>Identifies authoritative servers for the zone</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 3. RESOLUTION PROCESS -->
+                <section id="resolution">
+                    <h2>3. The Resolution Process</h2>
+                    <a href="/sim/dns.html" class="btn-sim">Launch DNS Simulation</a>
+                    <p>When you type a URL, a specific sequence of events occurs to find the IP:</p>
+                    
+                    <ol style="padding-left: 20px; color: var(--text-muted);">
+                        <li><strong>Local Cache:</strong> Check if you've visited recently.</li>
+                        <li><strong>Hosts File:</strong> Check the local <code>/etc/hosts</code> (Linux) or <code>C:\Windows\System32\drivers\etc\hosts</code> (Win).</li>
+                        <li><strong>Recursive Resolver:</strong> Ask your ISP or a public resolver (Cloudflare/Google).</li>
+                        <li><strong>The Hierarchy:</strong> The resolver queries Root, TLD, and Authoritative servers.</li>
+                    </ol>
+
+                    <div class="security-check">
+                        <div class="sc-content">
+                            <h4>🛡️ The "Hosts" File Trick</h4>
+                            <p>Hackers often modify the local <code>hosts</code> file during an infection to redirect <code>bankofamerica.com</code> to their own malicious IP, bypassing DNS entirely.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. TOOLING -->
+                <section id="tooling">
+                    <h2>4. Recon Tooling: nslookup & dig</h2>
+                    <p>Pentesters use these tools to map out a target's infrastructure before an attack.</p>
+
+                    <h3>Using nslookup</h3>
+                    <div class="terminal">
+                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                        <span class="cmd">C:\></span> nslookup google.com<br>
+                        Server:  UnKnown<br>
+                        Address:  192.168.1.1<br>
+                        Non-authoritative answer:<br>
+                        Name:    google.com<br>
+                        Address:  142.250.190.46
+                    </div>
+
+                    <h3>Using dig (The Pro Choice)</h3>
+                    <div class="terminal">
+                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                        <span class="cmd">root@kali:~#</span> dig google.com MX +short<br>
+                        10 smtp.google.com.<br>
+                        <span style="color: #64748b;">// This finds the mail servers for the target instantly.</span>
+                    </div>
+
+                    <div class="mini-lab">
+                        <h4>🧪 Mini Exercise</h4>
+                        <p>Try to find the <strong>TXT</strong> records for <code>github.com</code> using <code>dig github.com TXT</code>. You will likely see "verification" strings for various services they use.</p>
+                    </div>
+                </section>
+
+                <!-- 5. ATTACK VECTORS -->
+                <section id="attacks">
+                    <h2>5. DNS Attack Vectors</h2>
+                    <p>DNS is often unprotected and high-trust, making it a favorite for attackers.</p>
+
+                    <div class="security-check" style="border-color: var(--danger);">
+                        <div class="sc-content">
+                            <h4 style="color: var(--danger);">💀 DNS Poisoning (Spoofing)</h4>
+                            <p>Flooding a resolver with fake entries so that users are sent to a malicious site. This is a classic Man-in-the-Middle technique.</p>
+                        </div>
+                    </div>
+
+                    <div class="hackers-note">
+                        <h4>📡 DNS Tunneling</h4>
+                        <p>Because DNS traffic is rarely blocked by firewalls, hackers hide data inside DNS queries (TXT records) to exfiltrate passwords or receive commands from a C2 server.</p>
+                    </div>
+                </section>
+
+                <!-- RECAP -->
+                <section id="recap" style="border-bottom: none;">
+                    <div class="recap-box" style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3>📌 Module Recap</h3>
+                        <ul style="padding-left: 20px;">
+                            <li style="margin-bottom: 10px;"><strong>DNS</strong> translates names to IPs in a hierarchical fashion.</li>
+                            <li style="margin-bottom: 10px;"><strong>A records</strong> are for IPv4; <strong>MX</strong> for mail; <strong>TXT</strong> for verification.</li>
+                            <li style="margin-bottom: 10px;"><strong>dig</strong> and <strong>nslookup</strong> are essential for infrastructure discovery.</li>
+                            <li style="margin-bottom: 10px;"><strong>DNS Poisoning</strong> and <strong>Tunneling</strong> are critical security risks.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FOOTER NAV -->
+                <div class="module-footer">
+                    <a href="05-mac-arp.html" class="back-link">← Previous Module</a>
+                    <div>
+                        <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">Next: Routing Fundamentals</div>
+                        <a href="07-routing.html" class="btn-next">Next Module →</a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Reading Progress
+        window.addEventListener("scroll", () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById("reading-bar").style.width = progress + "%";
+        });
+
+        // TOC Active Link
+        const sections = document.querySelectorAll("main section");
+        const tocLinks = document.querySelectorAll(".toc a");
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach(link => {
+                        link.classList.remove("active");
+                        if (link.getAttribute("href") === "#" + entry.target.id) {
+                            link.classList.add("active");
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(section => observer.observe(section));
+
+        // Progress Tracking
+        window.onload = function() {
+            const MODULE_ID = 4; // Unique ID for Phase 6
+            let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
+            if(!savedProgress.includes(MODULE_ID)) {
+                savedProgress.push(MODULE_ID);
+                localStorage.setItem('voidNetProgress', JSON.stringify(savedProgress));
+            }
+        };
+    </script>
+</body>
+</html>

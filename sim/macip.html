@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | MAC vs IP Visualizer</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent-blue: #3b82f6;   
+            --accent-emerald: #10b981;
+            --accent-purple: #8b5cf6;
+            --accent-amber: #f59e0b;  
+            --border: #334155;
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* --- HEADER & TABS --- */
+        .sim-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+            padding: 15px 25px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .logo { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; color: var(--accent-blue); }
+
+        .tab-group { display: flex; background: var(--bg-body); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+        .tab-btn {
+            padding: 6px 15px; border: none; background: transparent; color: var(--text-muted);
+            font-size: 0.8rem; font-weight: 600; cursor: pointer; border-radius: 7px; transition: all 0.2s;
+        }
+        .tab-btn.active { background: var(--bg-card); color: var(--text-main); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+        /* --- LAYOUT --- */
+        .main-layout { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
+        .content-area { display: flex; flex-direction: column; gap: 20px; }
+
+        /* --- TOPOLOGY MAP --- */
+        .topology-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 40px;
+            position: relative;
+            min-height: 350px;
+            background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .node-container { display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 5; height: 100%; }
+        
+        .topo-line {
+            position: absolute; top: 50%; left: 10%; right: 10%; height: 2px;
+            background: var(--border); transform: translateY(-50%); z-index: 1;
+        }
+
+        .node { text-align: center; width: 120px; }
+        .node-icon {
+            width: 60px; height: 60px; background: var(--bg-body); border: 2px solid var(--border);
+            border-radius: 15px; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px; font-size: 1.5rem; position: relative;
+        }
+        .node-label { font-size: 0.8rem; font-weight: bold; color: var(--text-main); }
+        .node-sub { font-family: var(--font-code); font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+
+        /* Animated Packet */
+        #packet {
+            position: absolute; top: 50%; left: 10%; width: 40px; height: 30px;
+            background: var(--accent-amber); border-radius: 5px; transform: translate(-50%, -50%);
+            z-index: 10; display: none; align-items: center; justify-content: center;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); font-size: 0.8rem; font-weight: bold; color: #000;
+            transition: left 2s ease-in-out;
+        }
+
+        /* --- INSPECTOR --- */
+        .inspector-card {
+            background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden;
+        }
+        .inspector-header { background: rgba(255,255,255,0.03); padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 0.75rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; }
+        .inspector-body { padding: 20px; }
+
+        .header-box { border-radius: 10px; border: 1px solid var(--border); margin-bottom: 15px; overflow: hidden; }
+        .header-title { padding: 8px 15px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+        .header-content { padding: 12px 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: var(--bg-body); }
+        
+        .field-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 3px; }
+        .field-value { font-family: var(--font-code); font-size: 0.85rem; color: var(--text-main); }
+        .value-changed { color: var(--accent-amber); animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* --- LOGS --- */
+        .logs-card {
+            background: #0d1117; border-radius: var(--radius); border: 1px solid var(--border);
+            padding: 20px; height: 100%; font-family: var(--font-code); display: flex; flex-direction: column;
+        }
+        .logs-title { font-size: 0.75rem; color: #64748b; margin-bottom: 15px; border-bottom: 1px solid #1e293b; padding-bottom: 10px; }
+        #log-entries { flex: 1; overflow-y: auto; font-size: 0.75rem; }
+        .log-entry { margin-bottom: 12px; border-left: 2px solid var(--accent-blue); padding-left: 10px; animation: fadeIn 0.3s forwards; }
+        .log-time { color: #475569; font-size: 0.65rem; }
+        .log-node { color: var(--accent-blue); font-weight: bold; margin-bottom: 2px; }
+
+        /* --- THEORY TAB --- */
+        .theory-layout { display: none; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .theory-card { background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border); }
+        .theory-card h2 { color: var(--accent-blue); margin-bottom: 15px; }
+        .theory-card ul { list-style: none; }
+        .theory-card li { margin-bottom: 12px; font-size: 0.9rem; color: var(--text-muted); }
+        .theory-card li strong { color: var(--text-main); }
+
+        .postal-card { grid-column: 1 / -1; background: linear-gradient(to right, #1e293b, #0f172a); border: 1px solid var(--accent-purple); padding: 30px; border-radius: var(--radius); }
+
+        .btn-main {
+            padding: 12px 25px; border-radius: 50px; background: var(--accent-blue); border: none;
+            color: white; font-weight: bold; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); }
+        .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
+
+        @media (max-width: 900px) {
+            .main-layout, .theory-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- HEADER -->
+        <header class="sim-header">
+            <div class="logo">NetPacket Visualizer</div>
+            <div class="tab-group">
+                <button class="tab-btn active" onclick="showTab('simulation')">Simulation</button>
+                <button class="tab-btn" onclick="showTab('theory')">Theory Comparison</button>
+            </div>
+        </header>
+
+        <!-- SIMULATION CONTENT -->
+        <div id="simulation-tab" class="main-layout">
+            <div class="content-area">
+                <!-- TOPOLOGY -->
+                <div class="topology-card">
+                    <div class="topo-line"></div>
+                    <div id="packet">DATA</div>
+                    <div class="node-container">
+                        <div class="node">
+                            <div class="node-icon">💻</div>
+                            <div class="node-label">Client</div>
+                            <div class="node-sub">192.168.1.10</div>
+                            <div class="node-sub">AA:AA:AA:AA:AA:AA</div>
+                        </div>
+                        <div class="node">
+                            <div class="node-icon" style="border-radius: 50%;">🌐</div>
+                            <div class="node-label">Router</div>
+                            <div class="node-sub">Gateway</div>
+                        </div>
+                        <div class="node">
+                            <div class="node-icon">☁️</div>
+                            <div class="node-label">Server</div>
+                            <div class="node-sub">10.0.0.50</div>
+                            <div class="node-sub">DD:DD:DD:DD:DD:DD</div>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 50px;">
+                        <button class="btn-main" id="startBtn" onclick="runSimulation()">Send Packet</button>
+                        <button class="btn-main" style="background: var(--bg-body); color: var(--text-muted); border: 1px solid var(--border); margin-left: 10px;" onclick="resetSim()">Reset</button>
+                    </div>
+                </div>
+
+                <!-- INSPECTOR -->
+                <div class="inspector-card">
+                    <div class="inspector-header">Live Packet Inspector</div>
+                    <div class="inspector-body">
+                        <!-- IP Header -->
+                        <div class="header-box" style="border-color: rgba(59, 130, 246, 0.3);">
+                            <div class="header-title" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-blue);">Layer 3: IP Header (Logical)</div>
+                            <div class="header-content">
+                                <div><div class="field-label">Src IP</div><div class="field-value" id="inspect-src-ip">--</div></div>
+                                <div><div class="field-label">Dst IP</div><div class="field-value" id="inspect-dst-ip">--</div></div>
+                            </div>
+                        </div>
+                        <!-- MAC Header -->
+                        <div class="header-box" style="border-color: rgba(16, 185, 129, 0.3);">
+                            <div class="header-title" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald);">Layer 2: Ethernet Header (Physical)</div>
+                            <div class="header-content">
+                                <div><div class="field-label" id="label-src-mac">Src MAC</div><div class="field-value" id="inspect-src-mac">--</div></div>
+                                <div><div class="field-label" id="label-dst-mac">Dst MAC</div><div class="field-value" id="inspect-dst-mac">--</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOGS SIDEBAR -->
+            <aside class="logs-card">
+                <div class="logs-title">NETWORK EVENTS</div>
+                <div id="log-entries">
+                    <div style="color: #475569; font-style: italic; text-align: center; margin-top: 20px;">Ready for transmission.</div>
+                </div>
+                <div style="margin-top: 20px; padding: 15px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.1); border-radius: 10px; font-size: 0.7rem; color: var(--accent-amber);">
+                    <strong>Hacker's Note:</strong> Routers strip Layer 2 headers and rewrite them for the next hop. Layer 3 (IP) remains untouched.
+                </div>
+            </aside>
+        </div>
+
+        <!-- THEORY CONTENT -->
+        <div id="theory-tab" class="theory-layout">
+            <div class="theory-card">
+                <h2>IP Address</h2>
+                <ul>
+                    <li><strong>Logical Address:</strong> Assigned via software. Changes if you switch networks.</li>
+                    <li><strong>Scope:</strong> Global. Used for end-to-end delivery across the entire internet.</li>
+                    <li><strong>Layer:</strong> Network Layer (Layer 3).</li>
+                </ul>
+            </div>
+            <div class="theory-card">
+                <h2>MAC Address</h2>
+                <ul>
+                    <li><strong>Physical Address:</strong> Burned into hardware. Usually permanent.</li>
+                    <li><strong>Scope:</strong> Local. Only used to jump from one device to the next in a local link.</li>
+                    <li><strong>Layer:</strong> Data Link Layer (Layer 2).</li>
+                </ul>
+            </div>
+            <div class="postal-card">
+                <h3 style="color: var(--accent-purple); margin-bottom: 10px;">The Postal Analogy</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem;">
+                    Imagine sending a letter. The <strong>IP Address</strong> is the name and home address on the envelope—it never changes. 
+                    The <strong>MAC Address</strong> is the vehicle carrying the letter. First, it's a mail truck, then a plane, then a delivery bike. 
+                    The vehicle changes at every "hop," but the destination on the envelope stays the same.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const net = {
+            client: { ip: '192.168.1.10', mac: 'AA:AA:AA:AA:AA:AA' },
+            router_in: { mac: 'BB:BB:BB:BB:BB:BB' },
+            router_out: { mac: 'CC:CC:CC:CC:CC:CC' },
+            server: { ip: '10.0.0.50', mac: 'DD:DD:DD:DD:DD:DD' }
+        };
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (tab === 'simulation') {
+                document.getElementById('simulation-tab').style.display = 'grid';
+                document.getElementById('theory-tab').style.display = 'none';
+            } else {
+                document.getElementById('simulation-tab').style.display = 'none';
+                document.getElementById('theory-tab').style.display = 'grid';
+            }
+        }
+
+        function addLog(node, message) {
+            const container = document.getElementById('log-entries');
+            if (container.innerHTML.includes('Ready for transmission')) container.innerHTML = '';
+            
+            const time = new Date().toLocaleTimeString([], { hour12: false });
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<div class="log-time">${time}</div><div class="log-node">${node}</div><div>${message}</div>`;
+            container.prepend(entry);
+        }
+
+        function updateInspector(srcIp, dstIp, srcMac, dstMac, changed = false) {
+            document.getElementById('inspect-src-ip').innerText = srcIp;
+            document.getElementById('inspect-dst-ip').innerText = dstIp;
+            
+            const sMac = document.getElementById('inspect-src-mac');
+            const dMac = document.getElementById('inspect-dst-mac');
+            
+            sMac.innerText = srcMac;
+            dMac.innerText = dstMac;
+            
+            if (changed) {
+                sMac.classList.add('value-changed');
+                dMac.classList.add('value-changed');
+                document.getElementById('label-src-mac').innerText = "Src MAC (REWRITTEN)";
+                document.getElementById('label-dst-mac').innerText = "Dst MAC (REWRITTEN)";
+            } else {
+                sMac.classList.remove('value-changed');
+                dMac.classList.remove('value-changed');
+                document.getElementById('label-src-mac').innerText = "Src MAC";
+                document.getElementById('label-dst-mac').innerText = "Dst MAC";
+            }
+        }
+
+        function resetSim() {
+            const p = document.getElementById('packet');
+            p.style.display = 'none';
+            p.style.left = '10%';
+            updateInspector('--', '--', '--', '--');
+            document.getElementById('log-entries').innerHTML = '<div style="color: #475569; font-style: italic; text-align: center; margin-top: 20px;">Ready for transmission.</div>';
+            document.getElementById('startBtn').disabled = false;
+        }
+
+        function runSimulation() {
+            const p = document.getElementById('packet');
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            
+            // Phase 1: Client
+            p.style.display = 'flex';
+            p.style.left = '10%';
+            addLog('Client', 'Generating packet. Dest IP is remote. Addressing to Gateway MAC.');
+            updateInspector(net.client.ip, net.server.ip, net.client.mac, net.router_in.mac);
+
+            // Phase 2: Link 1
+            setTimeout(() => {
+                p.style.left = '50%';
+                addLog('Network', 'In transit: Client -> Router');
+            }, 1000);
+
+            // Phase 3: Router
+            setTimeout(() => {
+                addLog('Router', 'IP Packet received. Routing table check: 10.0.0.50 is on Eth2.');
+                addLog('Router', 'STRIPPING Ethernet header. Encapsulating with new MACs.');
+                updateInspector(net.client.ip, net.server.ip, net.router_out.mac, net.server.mac, true);
+            }, 3000);
+
+            // Phase 4: Link 2
+            setTimeout(() => {
+                p.style.left = '90%';
+                addLog('Network', 'In transit: Router -> Server');
+            }, 4500);
+
+            // Phase 5: Server
+            setTimeout(() => {
+                addLog('Server', 'Packet Received! IP matches. Opening data payload.');
+                btn.disabled = false;
+            }, 6500);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | Network Speed Simulator</title>
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --border: #334155;
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+        }
+
+        /* --- HEADER --- */
+        header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+            padding: 20px 30px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 10px;
+        }
+
+        header h1 {
+            font-family: var(--font-head);
+            font-size: 1.4rem;
+            background: linear-gradient(90deg, var(--accent-blue), #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* --- BUTTONS --- */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-family: var(--font-body);
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-reset {
+            background: var(--bg-body);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .btn-reset:hover {
+            border-color: var(--text-main);
+            color: var(--text-main);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* --- VISUALIZER CARD --- */
+        .visualizer-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 40px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            overflow: hidden;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .node {
+            text-align: center;
+            z-index: 5;
+        }
+
+        .node-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--bg-body);
+            border: 2px solid var(--border);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            font-size: 1.5rem;
+            transition: border-color 0.3s;
+        }
+
+        .node-label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            font-family: var(--font-code);
+        }
+
+        /* The Data Pipe */
+        .pipe {
+            flex: 1;
+            height: 20px;
+            background: var(--bg-body);
+            margin: 0 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: visible;
+        }
+
+        .packet {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 10px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-blue);
+            z-index: 10;
+        }
+
+        .packet.lost {
+            background: var(--accent-red);
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+
+        .latency-line {
+            position: absolute;
+            bottom: -30px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .latency-line span {
+            background: var(--bg-card);
+            padding: 0 10px;
+            font-size: 0.7rem;
+            font-family: var(--font-code);
+            color: var(--text-muted);
+        }
+
+        /* --- STATS GRID --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: var(--radius);
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-family: var(--font-code);
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .stat-unit {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+
+        .throughput-box {
+            border-color: var(--accent-emerald);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .throughput-value {
+            color: var(--accent-emerald);
+            font-size: 1.5rem;
+        }
+
+        /* --- CONTROLS --- */
+        .controls-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 25px;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .control-value {
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            color: var(--accent-blue);
+        }
+
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            background: var(--bg-body);
+            border-radius: 5px;
+            appearance: none;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .presets {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .preset-btn {
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-main);
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div>
+                <h1>Network Speed Simulator</h1>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">Visualize Bandwidth vs. Latency vs. Throughput
+                </p>
+            </div>
+            <div class="header-controls">
+                <button class="btn btn-reset" onclick="resetStats()">RESET</button>
+                <button class="btn btn-primary" id="playBtn" onclick="togglePlay()">START SIM</button>
+            </div>
+        </header>
+
+        <!-- MAIN SIMULATION AREA -->
+        <div style="grid-column: 1 / 1;">
+            <div class="visualizer-card">
+                <div class="node">
+                    <div class="node-icon" id="node-client">💻</div>
+                    <div class="node-label">CLIENT</div>
+                </div>
+
+                <div class="pipe" id="pipe">
+                    <div class="latency-line"><span id="latency-display">500ms RTT</span></div>
+                    <!-- Packets injected here -->
+                </div>
+
+                <div class="node">
+                    <div class="node-icon" id="node-server">☁️</div>
+                    <div class="node-label">SERVER</div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Bandwidth</div>
+                    <div class="stat-value"><span id="stat-bw">10</span> <span class="stat-unit">Mbps</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Latency</div>
+                    <div class="stat-value"><span id="stat-lat">500</span> <span class="stat-unit">ms</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Packet Loss</div>
+                    <div class="stat-value"><span id="stat-loss">0</span> <span class="stat-unit">%</span></div>
+                </div>
+                <div class="stat-box throughput-box">
+                    <div class="stat-label" style="color: var(--accent-emerald);">Actual Throughput</div>
+                    <div class="stat-value throughput-value" id="stat-throughput">0.0</div>
+                    <div class="stat-unit">Mbps</div>
+                </div>
+            </div>
+
+            <div
+                style="margin-top: 20px; padding: 20px; background: rgba(59, 130, 246, 0.05); border-radius: var(--radius); border: 1px solid rgba(59, 130, 246, 0.1); font-size: 0.85rem;">
+                <span style="color: var(--accent-blue); font-weight: bold;">Analogy:</span>
+                Bandwidth is the <strong>width of the pipe</strong>, Latency is the <strong>length of the pipe</strong>,
+                and Throughput is the <strong>actual water</strong> coming out the other end.
+            </div>
+        </div>
+
+        <!-- CONTROLS SIDEBAR -->
+        <aside class="controls-card">
+            <div class="control-group">
+                <div class="control-header">
+                    <span class="control-label">Bandwidth</span>
+                    <span class="control-value" id="val-bw">10 Mbps</span>
+                </div>
+                <input type="range" id="input-bw" min="1" max="100" value="10" oninput="updateParams()">
+            </div>
+
+            <div class="control-group">
+                <div class="control-header">
+                    <span class="control-label">Latency</span>
+                    <span class="control-value" id="val-lat">500 ms</span>
+                </div>
+                <input type="range" id="input-lat" min="10" max="2000" value="500" oninput="updateParams()">
+            </div>
+
+            <div class="control-group">
+                <div class="control-header">
+                    <span class="control-label">Packet Loss</span>
+                    <span class="control-value" id="val-loss">0 %</span>
+                </div>
+                <input type="range" id="input-loss" min="0" max="50" value="0" oninput="updateParams()">
+            </div>
+
+            <div style="border-top: 1px solid var(--border); padding-top: 20px;">
+                <span class="stat-label">Presets</span>
+                <div class="presets">
+                    <button class="preset-btn" onclick="setPreset(50, 20, 0)">Fiber Optic</button>
+                    <button class="preset-btn" onclick="setPreset(20, 100, 1)">4G LTE</button>
+                    <button class="preset-btn" onclick="setPreset(5, 600, 2)">Satellite</button>
+                    <button class="preset-btn" onclick="setPreset(2, 1200, 15)">Bad WiFi</button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // Simulation Constants
+        const PACKET_SIZE_BITS = 10000;
+
+        // State
+        let isPlaying = false;
+        let bandwidth = 10;
+        let latency = 500;
+        let packetLoss = 0;
+
+        let packets = [];
+        let totalSent = 0;
+        let receivedBits = 0;
+        let lastTime = 0;
+        let spawnTimer = 0;
+        let throughputInterval = 0;
+
+        function updateParams() {
+            bandwidth = parseInt(document.getElementById('input-bw').value);
+            latency = parseInt(document.getElementById('input-lat').value);
+            packetLoss = parseInt(document.getElementById('input-loss').value);
+
+            document.getElementById('val-bw').innerText = bandwidth + " Mbps";
+            document.getElementById('val-lat').innerText = latency + " ms";
+            document.getElementById('val-loss').innerText = packetLoss + " %";
+
+            document.getElementById('stat-bw').innerText = bandwidth;
+            document.getElementById('stat-lat').innerText = latency;
+            document.getElementById('stat-loss').innerText = packetLoss;
+            document.getElementById('latency-display').innerText = latency + "ms RTT";
+        }
+
+        function setPreset(bw, lat, loss) {
+            document.getElementById('input-bw').value = bw;
+            document.getElementById('input-lat').value = lat;
+            document.getElementById('input-loss').value = loss;
+            updateParams();
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playBtn');
+            if (isPlaying) {
+                btn.innerText = "PAUSE SIM";
+                btn.style.background = "var(--accent-amber)";
+                lastTime = performance.now();
+                requestAnimationFrame(animate);
+
+                throughputInterval = setInterval(() => {
+                    const mbps = (receivedBits * 2) / 1000000;
+                    document.getElementById('stat-throughput').innerText = mbps.toFixed(1);
+                    receivedBits = 0;
+                }, 500);
+            } else {
+                btn.innerText = "START SIM";
+                btn.style.background = "var(--accent-blue)";
+                clearInterval(throughputInterval);
+            }
+        }
+
+        function resetStats() {
+            packets.forEach(p => p.el.remove());
+            packets = [];
+            receivedBits = 0;
+            document.getElementById('stat-throughput').innerText = "0.0";
+        }
+
+        function animate(time) {
+            if (!isPlaying) return;
+
+            const deltaTime = time - lastTime;
+            lastTime = time;
+
+            // 1. Spawn Packets based on Bandwidth
+            // Packets/sec = (BW * 1M) / PacketSize
+            const spawnInterval = 1000 / ((bandwidth * 1000000) / PACKET_SIZE_BITS);
+            spawnTimer += deltaTime;
+
+            if (spawnTimer >= spawnInterval) {
+                spawnTimer = 0;
+                createPacket();
+            }
+
+            // 2. Move Packets
+            for (let i = packets.length - 1; i >= 0; i--) {
+                const p = packets[i];
+                const moveAmount = (deltaTime / latency) * 100;
+                p.progress += moveAmount;
+
+                // Handle mid-pipe drop
+                if (p.isLost && p.progress >= p.dropPoint) {
+                    p.el.style.opacity = '0';
+                    p.el.style.transform = 'translateY(-50%) scale(2)';
+                    setTimeout(() => p.el.remove(), 300);
+                    packets.splice(i, 1);
+                    continue;
+                }
+
+                // Handle arrival
+                if (p.progress >= 100) {
+                    receivedBits += PACKET_SIZE_BITS;
+                    p.el.remove();
+                    packets.splice(i, 1);
+                    continue;
+                }
+
+                p.el.style.left = p.progress + "%";
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        function createPacket() {
+            const isLost = Math.random() * 100 < packetLoss;
+            const el = document.createElement('div');
+            el.className = 'packet' + (isLost ? ' lost' : '');
+            document.getElementById('pipe').appendChild(el);
+
+            packets.push({
+                el: el,
+                progress: 0,
+                isLost: isLost,
+                dropPoint: isLost ? (20 + Math.random() * 60) : 100
+            });
+        }
+
+        // Initialize
+        updateParams();
+    </script>
+</body>
+
+</html>

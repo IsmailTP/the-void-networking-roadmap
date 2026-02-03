@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | IP Config Simulator</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- CORE THEME (MATCHING 09-linux.html) --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border: #334155;
+            --term-bg: #0d1117;
+
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* App-like feel */
+        }
+
+        /* --- LAYOUT --- */
+        header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-card);
+        }
+
+        .brand {
+            font-family: var(--font-head);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        .main-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: calc(100vh - 60px);
+        }
+
+        /* --- SIDEBAR MISSION PANEL --- */
+        .mission-panel {
+            background: rgba(30, 41, 59, 0.5);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .mission-title {
+            color: var(--accent);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .mission-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .task-list {
+            list-style: none;
+        }
+
+        .task-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .task-item.completed {
+            border-color: var(--accent);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--text-muted);
+            border-radius: 4px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-item.completed .task-checkbox {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+
+        .task-item.completed .task-checkbox::after {
+            content: '✓';
+            color: #000;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .hint-box {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        /* --- TERMINAL AREA --- */
+        .terminal-wrapper {
+            background: var(--term-bg);
+            display: flex;
+            flex-direction: column;
+            font-family: var(--font-code);
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+
+        .cmd-line {
+            color: var(--text-main);
+            margin-bottom: 5px;
+        }
+
+        .cmd-response {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .success-msg { color: var(--accent); }
+        .error-msg { color: var(--danger); }
+        .info-msg { color: #60a5fa; }
+
+        .input-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid var(--border);
+            padding-top: 15px;
+        }
+
+        .prompt {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        #cmd-input {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: var(--font-code);
+            font-size: 1rem;
+            flex: 1;
+            outline: none;
+        }
+
+        /* Scanline effect */
+        .terminal-wrapper::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* Mobile Adjustments */
+        @media(max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            .mission-panel {
+                max-height: 200px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand">
+            <span style="color: var(--accent);">>_</span> The Void Simulator
+        </div>
+        <a href="09-linux.html" class="back-link">Exit Simulator</a>
+    </header>
+
+    <div class="main-container">
+        <!-- MISSION PANEL -->
+        <aside class="mission-panel">
+            <div class="mission-title">Mission: Network Repair</div>
+            <p class="mission-desc">Your server "void-01" has lost connectivity. Diagnose the interface and restore internet access.</p>
+
+            <ul class="task-list">
+                <li class="task-item" id="task-1">
+                    <div class="task-checkbox"></div>
+                    <div>
+                        <strong>Check Interfaces</strong>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Identify the interface name</div>
+                    </div>
+                </li>
+                <li class="task-item" id="task-2">
+                    <div class="task-checkbox"></div>
+                    <div>
+                        <strong>Assign IP Address</strong>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Set 192.168.1.55/24</div>
+                    </div>
+                </li>
+                <li class="task-item" id="task-3">
+                    <div class="task-checkbox"></div>
+                    <div>
+                        <strong>Bring Interface UP</strong>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Enable the link</div>
+                    </div>
+                </li>
+                <li class="task-item" id="task-4">
+                    <div class="task-checkbox"></div>
+                    <div>
+                        <strong>Set Gateway</strong>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Route via 192.168.1.1</div>
+                    </div>
+                </li>
+                <li class="task-item" id="task-5">
+                    <div class="task-checkbox"></div>
+                    <div>
+                        <strong>Verify Connectivity</strong>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Ping 8.8.8.8 successfully</div>
+                    </div>
+                </li>
+            </ul>
+
+            <div class="hint-box" id="hint-display">
+                Type <code>help</code> for a list of available commands.
+            </div>
+        </aside>
+
+        <!-- TERMINAL -->
+        <div class="terminal-wrapper" onclick="document.getElementById('cmd-input').focus()">
+            <div class="terminal-output" id="output">
+                <div>Welcome to Void Linux v6.6.6</div>
+                <div style="margin-bottom: 15px;">System initialization... <span style="color:var(--danger)">Network unreachable.</span></div>
+            </div>
+            
+            <div class="input-area">
+                <span class="prompt">root@void:~#</span>
+                <input type="text" id="cmd-input" autocomplete="off" spellcheck="false" autofocus>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME STATE ---
+        const gameState = {
+            interfaceName: 'eth0',
+            ip: null,
+            subnet: null,
+            isUp: false,
+            gateway: null,
+            tasks: {
+                check: false,
+                assign: false,
+                up: false,
+                route: false,
+                ping: false
+            }
+        };
+
+        const terminalOutput = document.getElementById('output');
+        const cmdInput = document.getElementById('cmd-input');
+        const hintDisplay = document.getElementById('hint-display');
+
+        // --- COMMAND PROCESSOR ---
+        cmdInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const command = this.value.trim();
+                if (command) {
+                    processCommand(command);
+                    history.push(command);
+                    historyIndex = history.length;
+                }
+                this.value = '';
+            } else if (e.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    this.value = history[historyIndex];
+                }
+                e.preventDefault();
+            } else if (e.key === 'ArrowDown') {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    this.value = history[historyIndex];
+                } else {
+                    historyIndex = history.length;
+                    this.value = '';
+                }
+            }
+        });
+
+        let history = [];
+        let historyIndex = 0;
+
+        function print(text, type = '') {
+            const div = document.createElement('div');
+            div.className = type === 'cmd' ? 'cmd-line' : 'cmd-response ' + type;
+            div.innerHTML = text; // Allow HTML for colors
+            terminalOutput.appendChild(div);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        function processCommand(rawCmd) {
+            print(`root@void:~# ${rawCmd}`, 'cmd');
+            const parts = rawCmd.split(' ').filter(p => p !== '');
+            const cmd = parts[0].toLowerCase();
+            const args = parts.slice(1);
+
+            // --- COMMAND LOGIC ---
+            switch(cmd) {
+                case 'help':
+                    print(`Available commands:
+  <span style="color:var(--accent)">ip a</span> (or ip addr) - Show interfaces
+  <span style="color:var(--accent)">ip link set &lt;dev&gt; up/down</span> - Change state
+  <span style="color:var(--accent)">ip addr add &lt;ip/mask&gt; dev &lt;dev&gt;</span> - Add IP
+  <span style="color:var(--accent)">ip route add default via &lt;gw&gt;</span> - Set gateway
+  <span style="color:var(--accent)">ping &lt;ip&gt;</span> - Test connectivity
+  <span style="color:var(--accent)">clear</span> - Clear screen`);
+                    break;
+
+                case 'clear':
+                    terminalOutput.innerHTML = '';
+                    break;
+
+                case 'ip':
+                    handleIpCommand(args);
+                    break;
+
+                case 'ping':
+                    handlePing(args);
+                    break;
+
+                default:
+                    print(`bash: ${cmd}: command not found. Type 'help' for instructions.`, 'error-msg');
+            }
+            
+            checkProgress();
+        }
+
+        function handleIpCommand(args) {
+            if (args.length === 0) {
+                print("Usage: ip [ addr | link | route ]", 'info-msg');
+                return;
+            }
+
+            const subCmd = args[0];
+
+            // --- IP A / IP ADDR ---
+            if (subCmd === 'a' || subCmd === 'addr') {
+                if (args.length > 1 && args[1] === 'add') {
+                    // Syntax: ip addr add 192.168.1.55/24 dev eth0
+                    if (args.length < 5 || args[3] !== 'dev') {
+                        print("Error: Invalid syntax. Try: ip addr add <ip/mask> dev <interface>", 'error-msg');
+                        return;
+                    }
+                    if (args[4] !== 'eth0') {
+                        print(`Cannot find device "${args[4]}"`, 'error-msg');
+                        return;
+                    }
+                    const ipParts = args[2].split('/');
+                    if (ipParts.length !== 2) {
+                        print("Error: Missing subnet mask (e.g., /24)", 'error-msg');
+                        return;
+                    }
+                    
+                    gameState.ip = ipParts[0];
+                    gameState.subnet = ipParts[1];
+                    updateTask('task-2', true);
+                    print(`Updated ${args[4]}: ${args[2]} added.`);
+                } else {
+                    // Show Interfaces
+                    updateTask('task-1', true);
+                    let output = `1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever`;
+                    
+                    let ethState = gameState.isUp ? 'UP,LOWER_UP' : 'DOWN';
+                    let stateText = gameState.isUp ? 'UP' : 'DOWN';
+                    
+                    output += `\n2: eth0: <BROADCAST,MULTICAST,${ethState}> mtu 1500 qdisc fq_codel state ${stateText} group default qlen 1000
+    link/ether 00:15:5d:00:0c:05 brd ff:ff:ff:ff:ff:ff`;
+                    
+                    if (gameState.ip) {
+                        output += `\n    inet ${gameState.ip}/${gameState.subnet} scope global eth0
+       valid_lft forever preferred_lft forever`;
+                    }
+                    print(output);
+                }
+            }
+            // --- IP LINK ---
+            else if (subCmd === 'link') {
+                // Syntax: ip link set eth0 up
+                if (args[1] === 'set' && args[2] === 'eth0') {
+                    if (args[3] === 'up') {
+                        gameState.isUp = true;
+                        updateTask('task-3', true);
+                        print("RTNETLINK answers: Operation not supported (just kidding, it worked).");
+                    } else if (args[3] === 'down') {
+                        gameState.isUp = false;
+                        print("Interface eth0 is now DOWN.");
+                    }
+                } else {
+                    print("Usage: ip link set <dev> <up|down>", 'info-msg');
+                }
+            }
+            // --- IP ROUTE ---
+            else if (subCmd === 'route') {
+                if (args[1] === 'add' && args[2] === 'default' && args[3] === 'via') {
+                    // Syntax: ip route add default via 192.168.1.1
+                    gameState.gateway = args[4];
+                    updateTask('task-4', true);
+                    print(`Default gateway set to ${args[4]}`);
+                } else {
+                    // Show Route
+                    if (gameState.gateway) {
+                        print(`default via ${gameState.gateway} dev eth0 proto static 
+${gameState.ip?.replace(/\.\d+$/, '.0')}/${gameState.subnet} dev eth0 proto kernel scope link src ${gameState.ip}`);
+                    } else {
+                        print("No routes present.");
+                    }
+                }
+            } else {
+                print(`Object "${subCmd}" is unknown, try "addr", "link", or "route".`, 'error-msg');
+            }
+        }
+
+        function handlePing(args) {
+            if (args.length === 0) {
+                print("Usage: ping <destination>", 'info-msg');
+                return;
+            }
+            const target = args[0];
+            
+            print(`PING ${target} (${target}) 56(84) bytes of data.`);
+
+            let success = false;
+            // Conditions for success: IP set, Interface UP, Gateway Set (if external), or pinging self/local
+            
+            if (target === '127.0.0.1') success = true;
+            else if (target === gameState.ip && gameState.isUp) success = true;
+            else if (gameState.isUp && gameState.ip && gameState.gateway) {
+                // Assuming any external ping works if config is correct
+                success = true;
+                if (target === '8.8.8.8') {
+                    updateTask('task-5', true);
+                }
+            } else if (!gameState.isUp) {
+                setTimeout(() => print(`ping: connect: Network is unreachable`, 'error-msg'), 500);
+                return;
+            }
+
+            if (success) {
+                let count = 0;
+                const interval = setInterval(() => {
+                    count++;
+                    const time = (Math.random() * 10 + 10).toFixed(1);
+                    print(`64 bytes from ${target}: icmp_seq=${count} ttl=115 time=${time} ms`);
+                    if (count >= 3) {
+                        clearInterval(interval);
+                        print(`--- ${target} ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss`);
+                        if(target === '8.8.8.8') checkWinCondition();
+                    }
+                }, 800);
+            } else {
+                let count = 0;
+                const interval = setInterval(() => {
+                    count++;
+                    print(`From ${gameState.ip || 'unknown'}: icmp_seq=${count} Destination Host Unreachable`);
+                    if (count >= 3) {
+                        clearInterval(interval);
+                    }
+                }, 1000);
+            }
+        }
+
+        function updateTask(id, completed) {
+            if (completed) {
+                const el = document.getElementById(id);
+                if (!el.classList.contains('completed')) {
+                    el.classList.add('completed');
+                    // Flash effect logic could go here
+                }
+            }
+        }
+
+        function checkProgress() {
+            // Update hints based on state
+            if (!gameState.tasks.check && !history.some(h => h.includes('ip a'))) {
+                hintDisplay.innerHTML = "Start by checking your current configuration using <code>ip a</code>";
+            } else if (!gameState.ip) {
+                hintDisplay.innerHTML = "You need an IP address. Try: <code>ip addr add 192.168.1.55/24 dev eth0</code>";
+            } else if (!gameState.isUp) {
+                hintDisplay.innerHTML = "The interface state is DOWN. Use <code>ip link</code> commands to fix it.";
+            } else if (!gameState.gateway) {
+                hintDisplay.innerHTML = "Traffic can't leave the network. Add a default route via 192.168.1.1";
+            } else if (!document.getElementById('task-5').classList.contains('completed')) {
+                hintDisplay.innerHTML = "Configuration looks good! Verify with <code>ping 8.8.8.8</code>";
+            }
+        }
+
+        function checkWinCondition() {
+            // Check if all tasks are done
+            const allTasks = ['task-1', 'task-2', 'task-3', 'task-4', 'task-5'];
+            const allDone = allTasks.every(id => document.getElementById(id).classList.contains('completed'));
+            
+            if (allDone) {
+                setTimeout(() => {
+                    print(" ", 'cmd'); // Spacer
+                    print("🎉 SYSTEM RESTORED. EXCELLENT WORK.", 'success-msg');
+                    print("The network is fully operational.", 'info-msg');
+                    hintDisplay.style.background = "rgba(34, 197, 94, 0.1)";
+                    hintDisplay.style.borderColor = "var(--accent)";
+                    hintDisplay.innerHTML = "Mission Complete! You can now return to the lesson.";
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>

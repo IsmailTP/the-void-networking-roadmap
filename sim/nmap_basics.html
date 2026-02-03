@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | Nmap Simulator</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- CORE THEME (MATCHING 09-linux.html) --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #8b5cf6; /* Purple for Nmap/Recon */
+            --accent-glow: rgba(139, 92, 246, 0.3);
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --border: #334155;
+            --term-bg: #0d1117;
+
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- LAYOUT --- */
+        header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-card);
+        }
+
+        .brand {
+            font-family: var(--font-head);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        .main-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            height: calc(100vh - 60px);
+        }
+
+        /* --- SIDEBAR MISSION PANEL --- */
+        .mission-panel {
+            background: rgba(30, 41, 59, 0.5);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .mission-title {
+            color: var(--accent);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .mission-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .target-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px dashed var(--border);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            color: var(--text-main);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .task-list {
+            list-style: none;
+        }
+
+        .task-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .task-item.completed {
+            border-color: var(--accent);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--text-muted);
+            border-radius: 4px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-item.completed .task-checkbox {
+            border-color: var(--accent);
+            background: var(--accent);
+        }
+
+        .task-item.completed .task-checkbox::after {
+            content: '✓';
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .hint-box {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        /* --- TERMINAL AREA --- */
+        .terminal-wrapper {
+            background: var(--term-bg);
+            display: flex;
+            flex-direction: column;
+            font-family: var(--font-code);
+            padding: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+
+        .cmd-line {
+            color: var(--text-main);
+            margin-bottom: 5px;
+        }
+
+        .cmd-response {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .success-msg { color: var(--accent); }
+        .error-msg { color: var(--danger); }
+        .info-msg { color: #60a5fa; }
+        .port-open { color: #22c55e; } /* Green for open ports */
+        .port-closed { color: #ef4444; }
+
+        .input-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid var(--border);
+            padding-top: 15px;
+        }
+
+        .prompt {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        #cmd-input {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: var(--font-code);
+            font-size: 1rem;
+            flex: 1;
+            outline: none;
+        }
+
+        /* Scanline effect */
+        .terminal-wrapper::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        @media(max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            .mission-panel {
+                max-height: 200px;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="brand">
+            <span style="color: var(--accent);">>_</span> Nmap Recon
+        </div>
+        <a href="09-linux.html" class="back-link">Exit Simulator</a>
+    </header>
+
+    <div class="main-container">
+        <!-- MISSION PANEL -->
+        <aside class="mission-panel">
+            <div class="mission-title">Mission: Port Discovery</div>
+            <p class="mission-desc">A suspicious server has appeared on the network. Map its attack surface to identify potential vulnerabilities.</p>
+            
+            <div class="target-box">
+                TARGET IP: 10.10.10.5
+            </div>
+
+            <ul class="task-list">
+                <li class="task-item" id="task-1">
+                    <div class="task-checkbox"></div>
+                    <div>
+                        <strong>Ping Sweep</strong>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Verify target is online (ping)</div>
+                    </div>
+                </li>
+                <li class="task-item" id="task-2">
+                    <div class="task-checkbox"></div>
+                    <div>
+                        <strong>Basic Scan</strong>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Find open ports (nmap &lt;ip&gt;)</div>
+                    </div>
+                </li>
+                <li class="task-item" id="task-3">
+                    <div class="task-checkbox"></div>
+                    <div>
+                        <strong>Service Detection</strong>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Identify versions (-sV)</div>
+                    </div>
+                </li>
+                <li class="task-item" id="task-4">
+                    <div class="task-checkbox"></div>
+                    <div>
+                        <strong>Targeted Scan</strong>
+                        <div style="font-size: 0.8rem; opacity: 0.7;">Scan specific port 3306</div>
+                    </div>
+                </li>
+            </ul>
+
+            <div class="hint-box" id="hint-display">
+                Start by checking if the host is alive using <code>ping 10.10.10.5</code>.
+            </div>
+        </aside>
+
+        <!-- TERMINAL -->
+        <div class="terminal-wrapper" onclick="document.getElementById('cmd-input').focus()">
+            <div class="terminal-output" id="output">
+                <div>Kali GNU/Linux Rolling [Version 2024.1]</div>
+                <div style="margin-bottom: 15px;">Type 'help' for available commands.</div>
+            </div>
+            
+            <div class="input-area">
+                <span class="prompt">root@kali:~#</span>
+                <input type="text" id="cmd-input" autocomplete="off" spellcheck="false" autofocus>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME STATE ---
+        const TARGET_IP = "10.10.10.5";
+        const OPEN_PORTS = [
+            { port: 22, protocol: 'tcp', service: 'ssh', version: 'OpenSSH 8.2p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)' },
+            { port: 80, protocol: 'tcp', service: 'http', version: 'Apache httpd 2.4.41 ((Ubuntu))' },
+            { port: 3306, protocol: 'tcp', service: 'mysql', version: 'MySQL 5.7.33-0ubuntu0.18.04.1' }
+        ];
+
+        let history = [];
+        let historyIndex = 0;
+        let isScanning = false;
+
+        const terminalOutput = document.getElementById('output');
+        const cmdInput = document.getElementById('cmd-input');
+        const hintDisplay = document.getElementById('hint-display');
+
+        // --- COMMAND PROCESSOR ---
+        cmdInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (isScanning) return; // Block input during scan
+                const command = this.value.trim();
+                if (command) {
+                    processCommand(command);
+                    history.push(command);
+                    historyIndex = history.length;
+                }
+                this.value = '';
+            } else if (e.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    this.value = history[historyIndex];
+                }
+                e.preventDefault();
+            } else if (e.key === 'ArrowDown') {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    this.value = history[historyIndex];
+                } else {
+                    historyIndex = history.length;
+                    this.value = '';
+                }
+            }
+        });
+
+        function print(text, type = '') {
+            const div = document.createElement('div');
+            div.className = type === 'cmd' ? 'cmd-line' : 'cmd-response ' + type;
+            div.innerHTML = text; 
+            terminalOutput.appendChild(div);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        function processCommand(rawCmd) {
+            print(`root@kali:~# ${rawCmd}`, 'cmd');
+            const parts = rawCmd.split(' ').filter(p => p !== '');
+            const cmd = parts[0].toLowerCase();
+            const args = parts.slice(1);
+
+            switch(cmd) {
+                case 'help':
+                    print(`Available commands:
+  <span style="color:var(--accent)">ping &lt;ip&gt;</span>     - Check connectivity
+  <span style="color:var(--accent)">nmap &lt;ip&gt;</span>     - Basic port scan
+  <span style="color:var(--accent)">nmap -sV &lt;ip&gt;</span> - Detect service versions
+  <span style="color:var(--accent)">nmap -p &lt;port&gt; &lt;ip&gt;</span> - Scan specific port
+  <span style="color:var(--accent)">clear</span>         - Clear screen`);
+                    break;
+
+                case 'clear':
+                    terminalOutput.innerHTML = '';
+                    break;
+
+                case 'ping':
+                    handlePing(args);
+                    break;
+
+                case 'nmap':
+                    handleNmap(args);
+                    break;
+
+                default:
+                    print(`bash: ${cmd}: command not found`, 'error-msg');
+            }
+        }
+
+        // --- COMMAND HANDLERS ---
+
+        function handlePing(args) {
+            if (args.length === 0) {
+                print("Usage: ping <ip>", 'info-msg');
+                return;
+            }
+            const target = args[0];
+            
+            if (target !== TARGET_IP && target !== '127.0.0.1') {
+                print(`PING ${target} (${target}) 56(84) bytes of data.`);
+                setTimeout(() => print(`From 10.10.10.2 icmp_seq=1 Destination Host Unreachable`, 'error-msg'), 500);
+                return;
+            }
+
+            print(`PING ${target} (${target}) 56(84) bytes of data.`);
+            let count = 0;
+            const interval = setInterval(() => {
+                count++;
+                const time = (Math.random() * 5 + 20).toFixed(1); // Higher latency for "remote" target
+                print(`64 bytes from ${target}: icmp_seq=${count} ttl=63 time=${time} ms`);
+                
+                if (count >= 3) {
+                    clearInterval(interval);
+                    print(`--- ${target} ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss`);
+                    if (target === TARGET_IP) {
+                        updateTask('task-1');
+                        checkProgress();
+                    }
+                }
+            }, 800);
+        }
+
+        function handleNmap(args) {
+            if (args.length === 0) {
+                print("Usage: nmap [Scan Type(s)] <target specification>", 'info-msg');
+                return;
+            }
+
+            // Simple parser
+            let isVersionScan = false;
+            let target = null;
+            let specificPort = null;
+
+            for (let i = 0; i < args.length; i++) {
+                if (args[i] === '-sV' || args[i] === '-A') {
+                    isVersionScan = true;
+                }
+                else if (args[i].startsWith('-p')) {
+                    if (args[i] === '-p') {
+                        // case: -p 3306
+                        if (args[i+1]) {
+                            specificPort = args[i+1];
+                            i++; // Skip next arg
+                        }
+                    } else {
+                        // case: -p3306 (attached flag)
+                        specificPort = args[i].substring(2);
+                    }
+                }
+                else if (!args[i].startsWith('-')) {
+                    target = args[i];
+                }
+            }
+
+            if (!target) {
+                print("nmap: No target specified.", 'error-msg');
+                return;
+            }
+
+            if (target !== TARGET_IP) {
+                print(`Starting Nmap 7.94 ( https://nmap.org ) at ${new Date().toLocaleTimeString()}`);
+                print(`Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn`, 'error-msg');
+                return;
+            }
+
+            // Simulate Scan
+            isScanning = true;
+            print(`Starting Nmap 7.94 ( https://nmap.org ) at ${new Date().toLocaleTimeString()}`);
+            print(`Nmap scan report for ${TARGET_IP}`);
+            print(`Host is up (0.024s latency).`);
+            
+            // Randomize scan time based on complexity
+            const scanTime = isVersionScan ? 3000 : 1500;
+            
+            // Loading dots
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'cmd-response';
+            loadingDiv.innerText = "Scanning";
+            terminalOutput.appendChild(loadingDiv);
+            
+            let dotCount = 0;
+            const loadInterval = setInterval(() => {
+                dotCount = (dotCount + 1) % 4;
+                loadingDiv.innerText = "Scanning" + ".".repeat(dotCount);
+            }, 300);
+
+            setTimeout(() => {
+                clearInterval(loadInterval);
+                loadingDiv.remove();
+                
+                let output = "";
+                let displayedPorts = OPEN_PORTS;
+
+                // Handle -p flag
+                if (specificPort) {
+                    const requestedPort = parseInt(specificPort);
+                    const found = OPEN_PORTS.find(p => p.port === requestedPort);
+                    if (found) {
+                        displayedPorts = [found];
+                    } else {
+                        output += `PORT     STATE    SERVICE\n${requestedPort}/tcp   closed   unknown\n\n`;
+                        // Hint logic for the user's specific issue
+                        if (requestedPort === 3006) {
+                            output += `HINT: Did you mean port 3306 (MySQL)?\n\n`;
+                        }
+                        displayedPorts = [];
+                    }
+                    if (requestedPort === 3306) updateTask('task-4');
+                }
+
+                if (displayedPorts.length > 0) {
+                    if (isVersionScan) {
+                        output += `PORT     STATE SERVICE VERSION\n`;
+                        displayedPorts.forEach(p => {
+                            output += `${p.port}/${p.protocol}   <span class="port-open">open</span>  ${p.service.padEnd(7)} ${p.version}\n`;
+                        });
+                        updateTask('task-3');
+                    } else {
+                        output += `PORT     STATE SERVICE\n`;
+                        displayedPorts.forEach(p => {
+                            output += `${p.port}/${p.protocol}   <span class="port-open">open</span>  ${p.service}\n`;
+                        });
+                        if (!specificPort) updateTask('task-2'); // Only basic scan task if not specific port
+                    }
+                }
+
+                output += `\nNmap done: 1 IP address (1 host up) scanned in ${(scanTime/1000).toFixed(2)} seconds`;
+                print(output);
+                isScanning = false;
+                checkProgress();
+                
+                // Focus input again
+                cmdInput.focus();
+            }, scanTime);
+        }
+
+        // --- TASK & PROGRESS ---
+
+        function updateTask(id) {
+            const el = document.getElementById(id);
+            if (!el.classList.contains('completed')) {
+                el.classList.add('completed');
+            }
+        }
+
+        function checkProgress() {
+            const t1 = document.getElementById('task-1').classList.contains('completed');
+            const t2 = document.getElementById('task-2').classList.contains('completed');
+            const t3 = document.getElementById('task-3').classList.contains('completed');
+            const t4 = document.getElementById('task-4').classList.contains('completed');
+
+            if (!t1) {
+                hintDisplay.innerHTML = "Is the host alive? Use <code>ping 10.10.10.5</code>";
+            } else if (!t2) {
+                hintDisplay.innerHTML = "Host is up. Run a basic scan: <code>nmap 10.10.10.5</code>";
+            } else if (!t3) {
+                hintDisplay.innerHTML = "We see ports 22, 80, 3306. Find out what versions are running: <code>nmap -sV 10.10.10.5</code>";
+            } else if (!t4) {
+                hintDisplay.innerHTML = "Focus on the database port. Try scanning just port 3306: <code>nmap -p 3306 10.10.10.5</code>";
+            } else {
+                checkWinCondition();
+            }
+        }
+
+        function checkWinCondition() {
+            const allTasks = ['task-1', 'task-2', 'task-3', 'task-4'];
+            const allDone = allTasks.every(id => document.getElementById(id).classList.contains('completed'));
+            
+            if (allDone) {
+                setTimeout(() => {
+                    print(" ", 'cmd'); 
+                    print("👁️ RECONNAISSANCE COMPLETE.", 'success-msg');
+                    print("You have successfully mapped the target infrastructure.", 'info-msg');
+                    hintDisplay.style.background = "rgba(139, 92, 246, 0.1)";
+                    hintDisplay.style.borderColor = "var(--accent)";
+                    hintDisplay.innerHTML = "Excellent work. You now know exactly what you are dealing with.";
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>

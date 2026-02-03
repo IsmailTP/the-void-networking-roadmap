@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | OSI Encapsulation Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@600&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .font-head { font-family: 'Poppins', sans-serif; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .packet-glow { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        
+        /* Custom Scrollbar for dark theme */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen p-4 md:p-12">
+
+    <div id="app" class="max-w-6xl mx-auto">
+        <!-- Content injected by JavaScript -->
+    </div>
+
+    <script>
+        // --- Data Structure ---
+        const OSI_LAYERS = [
+            { id: 7, name: 'Application', pdu: 'Data', description: 'User interacts with the software. This is where data is generated.', action: 'Generates Data', protocols: 'HTTP, DNS, SSH', icon: 'monitor', color: 'bg-red-500', header: null },
+            { id: 6, name: 'Presentation', pdu: 'Data', description: 'Handles data formatting, encryption, and compression.', action: 'Formats/Encrypts', protocols: 'SSL/TLS, JPEG', icon: 'shield', color: 'bg-orange-500', header: null },
+            { id: 5, name: 'Session', pdu: 'Data', description: 'Manages the connection sessions between local and remote hosts.', action: 'Syncs Session', protocols: 'NetBIOS, RPC', icon: 'activity', color: 'bg-yellow-500', header: null },
+            { id: 4, name: 'Transport', pdu: 'Segment', description: 'Manages end-to-end communication and error correction.', action: 'Adds Port Numbers', protocols: 'TCP, UDP', icon: 'share-2', color: 'bg-green-500', header: 'L4 Header (Ports)' },
+            { id: 3, name: 'Network', pdu: 'Packet', description: 'Determines the best physical path for data (Routing).', action: 'Adds IP Addresses', protocols: 'IPv4, IPv6, ICMP', icon: 'globe', color: 'bg-blue-500', header: 'L3 Header (Source/Dest IP)' },
+            { id: 2, name: 'Data Link', pdu: 'Frame', description: 'Physically transfers data between nodes on the same segment.', action: 'Adds MAC Addresses', protocols: 'Ethernet, WiFi', icon: 'layers', color: 'bg-indigo-500', header: 'L2 Header (MAC)', trailer: 'FCS' },
+            { id: 1, name: 'Physical', pdu: 'Bits', description: 'The physical medium (cables, radio waves) that carries bits.', action: 'Converts to Signals', protocols: 'Fiber, Cat6, WiFi', icon: 'wifi', color: 'bg-purple-500', header: 'Preamble' }
+        ];
+
+        // --- State Management ---
+        let state = {
+            currentLayer: 8, // 8 is the idle state (top)
+            autoPlay: false,
+            intervalId: null
+        };
+
+        // --- Actions ---
+        function startAutoPlay() {
+            if (state.currentLayer === 1) reset();
+            else {
+                state.autoPlay = true;
+                if (state.currentLayer === 8) state.currentLayer = 7;
+                render();
+                
+                if (state.intervalId) clearInterval(state.intervalId);
+
+                state.intervalId = setInterval(() => {
+                    if (state.currentLayer > 1) {
+                        state.currentLayer--;
+                        render();
+                    } else {
+                        state.autoPlay = false;
+                        clearInterval(state.intervalId);
+                        render();
+                    }
+                }, 2200);
+            }
+        }
+
+        function stepDown() {
+            if (state.currentLayer > 1) {
+                state.currentLayer--;
+                render();
+            }
+        }
+
+        function reset() {
+            state.currentLayer = 8;
+            state.autoPlay = false;
+            if (state.intervalId) clearInterval(state.intervalId);
+            render();
+        }
+
+        function setLayer(id) {
+            state.autoPlay = false;
+            if (state.intervalId) clearInterval(state.intervalId);
+            state.currentLayer = id;
+            render();
+        }
+
+        // --- Render Logic ---
+        function renderVisualizerContent() {
+            if (state.currentLayer === 8) {
+                return `
+                    <div class="h-full min-h-[400px] flex flex-col items-center justify-center text-center p-12 bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-800">
+                        <i data-lucide="send" class="w-16 h-16 text-slate-700 mb-6"></i>
+                        <h2 class="text-2xl font-bold text-slate-200 mb-2">Initialize Transmission</h2>
+                        <p class="text-slate-500 max-w-sm">Click "Simulate Transmission" to watch data move through the stack and get wrapped in protocol headers.</p>
+                    </div>
+                `;
+            }
+
+            const activeLayer = OSI_LAYERS.find(l => l.id === state.currentLayer);
+            
+            // Build the packet visualization
+            let packetHTML = '';
+            
+            if (state.currentLayer === 1) {
+                packetHTML = `
+                    <div class="w-full space-y-4 fade-in">
+                        <div class="text-center text-purple-400 font-mono text-xs uppercase tracking-tighter mb-2 animate-pulse">Physical Stream Transmission</div>
+                        <div class="font-mono text-xl break-all text-purple-500 leading-relaxed opacity-80 select-none">
+                          10101011 00101010 11100010 10101011 11001010 01010101 11001100 00101010 
+                          11100101 00101110 10100101 11010010 01011110 10101011 11100101 00101110
+                        </div>
+                    </div>
+                `;
+            } else {
+                packetHTML = '<div class="flex items-center fade-in overflow-x-auto py-6 px-2">';
+                
+                // L2 MAC Header
+                if (state.currentLayer <= 2) {
+                    packetHTML += `
+                        <div class="h-28 bg-indigo-600 text-white flex items-center justify-center px-4 rounded-l-xl border-r border-indigo-700 shadow-2xl shrink-0">
+                            <div class="text-xs font-bold text-center">
+                                <div>L2 ETH</div>
+                                <div class="opacity-60 text-[9px] font-mono mt-1">MAC ADDR</div>
+                            </div>
+                        </div>`;
+                }
+                
+                // L3 IP Header
+                if (state.currentLayer <= 3) {
+                    packetHTML += `
+                        <div class="h-28 bg-blue-600 text-white flex items-center justify-center px-4 border-r border-blue-700 shadow-2xl shrink-0 ${state.currentLayer === 3 ? 'rounded-l-xl' : ''}">
+                            <div class="text-xs font-bold text-center">
+                                <div>L3 IP</div>
+                                <div class="opacity-60 text-[9px] font-mono mt-1">SRC/DEST</div>
+                            </div>
+                        </div>`;
+                }
+
+                // L4 TCP Header
+                if (state.currentLayer <= 4) {
+                    packetHTML += `
+                        <div class="h-28 bg-green-600 text-white flex items-center justify-center px-4 border-r border-green-700 shadow-2xl shrink-0 ${state.currentLayer === 4 ? 'rounded-l-xl' : ''}">
+                            <div class="text-xs font-bold text-center">
+                                <div>L4 TCP</div>
+                                <div class="opacity-60 text-[9px] font-mono mt-1">PORTS</div>
+                            </div>
+                        </div>`;
+                }
+
+                // Application Data
+                if (state.currentLayer >= 2) {
+                    const dataContent = state.currentLayer >= 5 ? "HTTP GET /index.html" : "Encrypted Payload";
+                    packetHTML += `
+                        <div class="h-28 bg-red-500 text-white flex items-center justify-center px-10 shadow-2xl shrink-0 min-w-[160px] ${state.currentLayer >= 5 ? 'rounded-xl' : ''}">
+                            <div class="text-center">
+                                <div class="font-bold text-sm tracking-widest">DATA</div>
+                                <div class="text-[9px] opacity-70 font-mono mt-1">${dataContent}</div>
+                            </div>
+                        </div>`;
+                }
+
+                // L2 Trailer (FCS)
+                if (state.currentLayer <= 2) {
+                    packetHTML += `
+                        <div class="h-28 bg-indigo-900 text-white flex items-center justify-center px-3 rounded-r-xl border-l border-indigo-700 shadow-2xl shrink-0 ml-1">
+                            <div class="text-xs font-bold text-center">
+                                <div>FCS</div>
+                            </div>
+                        </div>`;
+                }
+                
+                packetHTML += '</div>';
+            }
+
+            return `
+                <div class="space-y-6">
+                    <!-- Layer Detail Card -->
+                    <div class="bg-slate-900 p-6 rounded-2xl border border-slate-800 shadow-sm">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="p-3 rounded-xl ${activeLayer.color} text-white shadow-lg">
+                                <i data-lucide="${activeLayer.icon}" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-100 font-head">${activeLayer.name} Layer</h2>
+                                <p class="text-slate-500 text-xs font-mono uppercase tracking-widest">${activeLayer.action}</p>
+                            </div>
+                        </div>
+                        <p class="text-slate-300 text-sm leading-relaxed">${activeLayer.description}</p>
+                    </div>
+
+                    <!-- Visual Inspector -->
+                    <div class="bg-black/50 p-10 rounded-2xl border border-slate-800 relative overflow-hidden">
+                        <div class="absolute top-4 right-6 text-[10px] font-mono text-slate-600 uppercase tracking-widest">Packet Inspector v1.0</div>
+                        <div class="flex flex-col items-center justify-center min-h-[220px]">
+                            ${packetHTML}
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-slate-800/50 flex flex-wrap gap-6 justify-between items-center text-xs">
+                            <span class="text-slate-400">PDU Type: <strong class="text-white font-mono ml-1 underline decoration-blue-500 underline-offset-4">${activeLayer.pdu}</strong></span>
+                            ${activeLayer.header ? `
+                                <span class="flex items-center gap-2 text-slate-400">
+                                    <span class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
+                                    Appending: <span class="text-blue-400 font-bold">${activeLayer.header}</span>
+                                </span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            
+            const layersHTML = OSI_LAYERS.map(layer => {
+                const isActive = layer.id === state.currentLayer;
+                const isPassed = layer.id > state.currentLayer && state.currentLayer !== 8;
+                
+                let classes = "bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600";
+                if (isActive) classes = `${layer.color} border-transparent text-white shadow-2xl scale-[1.02] z-10`;
+                if (isPassed) classes = "bg-slate-900/40 border-slate-800/50 text-slate-700 opacity-60";
+
+                return `
+                <div onclick="setLayer(${layer.id})" class="relative flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${classes}">
+                    <div class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-lg flex items-center justify-center font-bold font-mono text-sm ${isActive ? 'bg-white/20' : 'bg-slate-800 text-slate-600'}">
+                            ${layer.id}
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm md:text-base">${layer.name}</h3>
+                            <div class="text-[10px] md:text-xs opacity-70 font-mono">${layer.protocols}</div>
+                        </div>
+                    </div>
+                    <div class="text-[10px] font-mono font-bold px-2 py-1 rounded-md ${isActive ? 'bg-black/20' : 'bg-slate-800 text-slate-600'}">
+                        ${layer.pdu}
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            app.innerHTML = `
+                <header class="mb-12 text-center">
+                    <div class="inline-block px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-[10px] font-mono font-bold mb-4 uppercase tracking-widest">Protocol Visualizer</div>
+                    <h1 class="text-4xl md:text-5xl font-bold text-slate-100 mb-4 font-head">OSI Model Encapsulation</h1>
+                    <p class="text-slate-400 text-sm md:text-base max-w-2xl mx-auto mb-8">Understand how data moves from User Applications (Layer 7) down to Physical Hardware (Layer 1).</p>
+                    
+                    <!-- NEW: EDUCATIONAL HEADER -->
+                    <div class="max-w-4xl mx-auto mt-8 text-left text-slate-400 text-sm leading-relaxed bg-slate-900/40 p-8 rounded-3xl border border-slate-800 shadow-inner">
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <div>
+                                <h4 class="text-white font-bold mb-2 flex items-center gap-2">
+                                    <i data-lucide="info" class="w-4 h-4 text-blue-400"></i> What is Encapsulation?
+                                </h4>
+                                <p>This simulation shows <strong>encapsulation</strong>: the process of wrapping data in "protocol envelopes" (headers). As data moves down, each layer adds its own instructions. When it arrives, the destination performs <strong>decapsulation</strong> to reveal the original data.</p>
+                            </div>
+                            <div class="border-t md:border-t-0 md:border-l border-slate-800 pt-6 md:pt-0 md:pl-8">
+                                <h4 class="text-amber-500 font-bold mb-2 flex items-center gap-2">
+                                    <i data-lucide="shield-alert" class="w-4 h-4 text-amber-500"></i> Cybersecurity Perspective
+                                </h4>
+                                <p>Security happens at every layer. <strong>L2</strong> is the site of ARP Spoofing; <strong>L3/L4</strong> is where firewalls filter by IP and Port; <strong>L7</strong> is where WAFs block SQL injections. To defend a network, you must know where the attack is living.</p>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Controls -->
+                <div class="flex flex-wrap justify-center gap-4 mb-12">
+                    <button onclick="startAutoPlay()" 
+                        class="flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all ${state.autoPlay && state.currentLayer > 1 ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xl hover:shadow-blue-500/30'}"
+                        ${state.autoPlay && state.currentLayer > 1 ? 'disabled' : ''}>
+                        <i data-lucide="zap" class="w-5 h-5 fill-current"></i>
+                        ${state.currentLayer === 1 ? 'Replay Simulation' : 'Simulate Transmission'}
+                    </button>
+                    
+                    <button onclick="stepDown()" 
+                        class="flex items-center gap-2 px-8 py-3 rounded-xl font-bold bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 transition-all disabled:opacity-50"
+                        ${state.autoPlay || state.currentLayer === 1 ? 'disabled' : ''}>
+                        <i data-lucide="arrow-down" class="w-5 h-5"></i>
+                        Next Layer
+                    </button>
+
+                    <button onclick="reset()" 
+                        class="flex items-center gap-2 px-8 py-3 rounded-xl font-bold bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 transition-all">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                        Reset
+                    </button>
+                </div>
+
+                <!-- Main Visualizer Grid -->
+                <div class="grid lg:grid-cols-12 gap-8 items-start mb-20">
+                    <!-- Left: Layer Stack -->
+                    <div class="lg:col-span-4 flex flex-col gap-3">
+                        <div class="flex justify-between text-[10px] font-bold text-slate-600 px-2 uppercase tracking-[0.2em] mb-2">
+                            <span>The OSI Stack</span>
+                            <span>PDU</span>
+                        </div>
+                        ${layersHTML}
+                    </div>
+
+                    <!-- Right: Visualization Space -->
+                    <div class="lg:col-span-8">
+                        ${renderVisualizerContent()}
+                    </div>
+                </div>
+
+                <footer class="text-center text-slate-600 text-[11px] font-mono uppercase tracking-widest pb-10">
+                    &copy; 2024 The Void | Networking Masterclass | Traffic Analysis Unit
+                </footer>
+            `;
+
+            lucide.createIcons();
+        }
+
+        // Initialize
+        render();
+    </script>
+</body>
+</html>

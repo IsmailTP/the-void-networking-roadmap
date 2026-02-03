@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Lookup Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .server-box {
+            transition: all 0.3s ease;
+        }
+        
+        .server-active {
+            border-color: #60A5FA; /* Blue-400 */
+            background-color: #1E293B; /* Slate-800 */
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(96, 165, 250, 0.2);
+            z-index: 10;
+        }
+
+        .packet {
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Tooltip styling */
+        .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .server-box:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Custom scrollbar for logs */
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .log-container::-webkit-scrollbar-track {
+            background: #0f172a; 
+            border-radius: 4px;
+        }
+        .log-container::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        
+        /* Pulse animation for the active step description */
+        @keyframes highlight-pulse {
+            0% { background-color: rgba(59, 130, 246, 0.1); }
+            50% { background-color: rgba(59, 130, 246, 0.2); }
+            100% { background-color: rgba(59, 130, 246, 0.1); }
+        }
+        .narrative-active {
+            animation: highlight-pulse 2s infinite;
+            border-color: #60A5FA;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen p-4 md:p-8 flex flex-col items-center">
+
+    <div class="max-w-6xl w-full">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-white mb-2 tracking-tight">DNS Learning Simulator</h1>
+            <p class="text-slate-400 max-w-xl mx-auto">Type a domain to watch how the internet translates a name into an IP address.</p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="bg-slate-900 rounded-xl shadow-lg border border-slate-800 p-6 mb-6 max-w-2xl mx-auto">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input type="text" id="domainInput" placeholder="example.com" value="google.com" 
+                    class="flex-1 px-4 py-3 bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-mono">
+                
+                <button onclick="startLookup()" id="resolveBtn"
+                    class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-500 active:bg-blue-700 transition-colors shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 whitespace-nowrap">
+                    <span>Start Simulation</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>
+                </button>
+
+                <button onclick="togglePause()" id="pauseBtn" disabled
+                    class="px-6 py-3 bg-slate-700 text-slate-200 font-semibold rounded-lg hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg flex items-center justify-center gap-2 min-w-[120px]">
+                    <span id="pauseBtnText">Pause</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Narrative Box (Explains what is happening) -->
+        <div id="narrative-box" class="bg-slate-900/50 border border-slate-800 rounded-xl p-6 mb-8 min-h-[100px] flex items-center justify-center text-center transition-all duration-300">
+            <p id="narrative-text" class="text-lg text-slate-300">
+                Ready to start. Enter a domain above and click <strong>Start Simulation</strong>.
+            </p>
+        </div>
+
+        <!-- Visualization Grid -->
+        <div class="relative grid grid-cols-1 md:grid-cols-5 gap-4 lg:gap-8 mb-8 h-auto md:h-[350px]">
+            
+            <!-- Packet (The moving dot) -->
+            <div id="packet" class="hidden absolute z-50 w-10 h-10 bg-blue-500 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.8)] items-center justify-center text-white text-xs font-bold flex border-2 border-white/20 backdrop-blur-sm">?</div>
+
+            <!-- 1. Client -->
+            <div id="client" class="server-box relative group flex flex-col items-center justify-center p-6 bg-slate-900 rounded-xl border-2 border-slate-800 shadow-lg h-40 md:h-full cursor-help">
+                <div class="absolute tooltip-text bg-slate-800 text-slate-200 text-xs p-2 rounded shadow-xl border border-slate-700 w-48 text-center pointer-events-none z-50">
+                    Your computer (Browser/OS). It needs the IP address to load the website.
+                </div>
+                <div class="text-4xl mb-3 grayscale group-hover:grayscale-0 transition-all duration-300">💻</div>
+                <h3 class="font-bold text-lg mb-1 text-slate-100">You</h3>
+                <p class="text-xs text-center text-slate-500">Client</p>
+                <div id="client-status" class="mt-3 text-xs font-mono bg-slate-950/50 text-green-400 px-3 py-1.5 rounded border border-green-900/30 hidden"></div>
+            </div>
+
+            <!-- 2. Recursive Resolver -->
+            <div id="resolver" class="server-box relative group flex flex-col items-center justify-center p-6 bg-slate-900 rounded-xl border-2 border-slate-800 shadow-lg h-40 md:h-full cursor-help">
+                <div class="absolute tooltip-text bg-slate-800 text-slate-200 text-xs p-2 rounded shadow-xl border border-slate-700 w-48 text-center pointer-events-none z-50">
+                    The "Librarian". Usually your ISP. It accepts your request and goes hunting for the answer.
+                </div>
+                <div class="text-4xl mb-3 grayscale group-hover:grayscale-0 transition-all duration-300">🔄</div>
+                <h3 class="font-bold text-lg mb-1 text-slate-100">Resolver</h3>
+                <p class="text-xs text-center text-slate-500">Recursive Server</p>
+            </div>
+
+            <!-- 3. Root Server -->
+            <div id="root" class="server-box relative group flex flex-col items-center justify-center p-6 bg-slate-900 rounded-xl border-2 border-slate-800 shadow-lg h-40 md:h-full cursor-help">
+                 <div class="absolute tooltip-text bg-slate-800 text-slate-200 text-xs p-2 rounded shadow-xl border border-slate-700 w-48 text-center pointer-events-none z-50">
+                    The Start. It knows where to find the lists for .com, .org, .net, etc.
+                </div>
+                <div class="text-4xl mb-3 grayscale group-hover:grayscale-0 transition-all duration-300">🌳</div>
+                <h3 class="font-bold text-lg mb-1 text-slate-100">Root</h3>
+                <p class="text-xs text-center text-slate-500">Root Zone (.)</p>
+            </div>
+
+            <!-- 4. TLD Server -->
+            <div id="tld" class="server-box relative group flex flex-col items-center justify-center p-6 bg-slate-900 rounded-xl border-2 border-slate-800 shadow-lg h-40 md:h-full cursor-help">
+                <div class="absolute tooltip-text bg-slate-800 text-slate-200 text-xs p-2 rounded shadow-xl border border-slate-700 w-48 text-center pointer-events-none z-50">
+                    Top Level Domain. Manages specific extensions like .com or .io.
+                </div>
+                <div class="text-4xl mb-3 grayscale group-hover:grayscale-0 transition-all duration-300">📚</div>
+                <h3 class="font-bold text-lg mb-1 text-slate-100">TLD</h3>
+                <p class="text-xs text-center text-slate-500">.com / .org</p>
+            </div>
+
+            <!-- 5. Authoritative Server -->
+            <div id="auth" class="server-box relative group flex flex-col items-center justify-center p-6 bg-slate-900 rounded-xl border-2 border-slate-800 shadow-lg h-40 md:h-full cursor-help">
+                <div class="absolute tooltip-text bg-slate-800 text-slate-200 text-xs p-2 rounded shadow-xl border border-slate-700 w-48 text-center pointer-events-none z-50">
+                    The Source. Owned by the domain owner (e.g. Google). Has the specific IP.
+                </div>
+                <div class="text-4xl mb-3 grayscale group-hover:grayscale-0 transition-all duration-300">🏢</div>
+                <h3 class="font-bold text-lg mb-1 text-slate-100">Auth NS</h3>
+                <p class="text-xs text-center text-slate-500">Authoritative</p>
+            </div>
+        </div>
+
+        <!-- Technical Logs -->
+        <div class="bg-slate-950 rounded-xl border border-slate-800 p-0 overflow-hidden shadow-inner">
+            <div class="bg-slate-900 p-3 border-b border-slate-800 flex justify-between items-center">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Technical Log Output</span>
+                <span id="timer" class="text-xs font-mono text-slate-500">0ms</span>
+            </div>
+            <div id="logs" class="log-container h-40 overflow-y-auto p-4 space-y-1.5 font-mono text-sm">
+                <div class="text-slate-600 italic">Waiting for input...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let isRunning = false;
+        let isPaused = false;
+        let resumeResolve = null; // Function to resolve the pause promise
+        
+        const packet = document.getElementById('packet');
+        const resolveBtn = document.getElementById('resolveBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const logContainer = document.getElementById('logs');
+        const timerEl = document.getElementById('timer');
+        const narrativeEl = document.getElementById('narrative-text');
+        const narrativeBox = document.getElementById('narrative-box');
+        let startTime = 0;
+
+        function setNarrative(text, type = 'neutral') {
+            narrativeEl.style.opacity = '0';
+            setTimeout(() => {
+                narrativeEl.innerHTML = text;
+                narrativeEl.style.opacity = '1';
+                
+                // Visual feedback on the box
+                narrativeBox.className = `bg-slate-900/50 border rounded-xl p-6 mb-8 min-h-[100px] flex items-center justify-center text-center transition-all duration-300 ${type === 'active' ? 'narrative-active border-blue-500/50' : 'border-slate-800'}`;
+            }, 200);
+        }
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            const time = new Date().toLocaleTimeString().split(' ')[0];
+            
+            let color = 'text-slate-400';
+            if (type === 'success') color = 'text-green-400';
+            if (type === 'query') color = 'text-blue-400';
+            if (type === 'response') color = 'text-yellow-400';
+            if (type === 'cache') color = 'text-purple-400';
+            
+            div.innerHTML = `<span class="text-slate-600 mr-2 opacity-50">[${time}]</span> <span class="${color}">${message}</span>`;
+            logContainer.appendChild(div);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function getPosition(elementId) {
+            const el = document.getElementById(elementId);
+            const rect = el.getBoundingClientRect();
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            return {
+                x: rect.left + scrollLeft + (rect.width / 2),
+                y: rect.top + scrollTop + (rect.height / 2)
+            };
+        }
+
+        function movePacket(fromId, toId, text = "?") {
+            return new Promise(resolve => {
+                const start = getPosition(fromId);
+                const end = getPosition(toId);
+                
+                packet.style.display = 'flex';
+                packet.textContent = text;
+                
+                // Reset transition for instant snap to start
+                packet.style.transition = 'none';
+                packet.style.left = `${start.x - 20}px`;
+                packet.style.top = `${start.y - 20}px`;
+                
+                // Force reflow
+                packet.offsetHeight;
+                
+                // Enable transition for move
+                packet.style.transition = 'all 1s cubic-bezier(0.4, 0, 0.2, 1)';
+                packet.style.left = `${end.x - 20}px`;
+                packet.style.top = `${end.y - 20}px`;
+                
+                setTimeout(() => {
+                    resolve();
+                }, 1000);
+            });
+        }
+
+        function highlightServer(id, active) {
+            const el = document.getElementById(id);
+            if (active) {
+                el.classList.add('server-active');
+            } else {
+                el.classList.remove('server-active');
+            }
+        }
+
+        function generateRandomIP() {
+            return Array(4).fill(0).map(() => Math.floor(Math.random() * 256)).join('.');
+        }
+
+        // New Delay function that respects Pause
+        async function delay(ms) {
+            // 1. Wait the standard duration
+            await new Promise(resolve => setTimeout(resolve, ms));
+            
+            // 2. Check if we are paused
+            if (isPaused) {
+                // If paused, create a new promise that waits forever until resumeResolve is called
+                log("Simulation paused by user", 'info');
+                await new Promise(resolve => { resumeResolve = resolve; });
+                log("Simulation resumed", 'info');
+            }
+        }
+
+        function togglePause() {
+            if (!isRunning) return;
+
+            isPaused = !isPaused;
+            const btnText = document.getElementById('pauseBtnText');
+            
+            if (isPaused) {
+                // Changing to Resume state
+                btnText.textContent = "Resume";
+                pauseBtn.classList.remove('bg-slate-700', 'hover:bg-slate-600');
+                pauseBtn.classList.add('bg-green-600', 'hover:bg-green-500');
+            } else {
+                // Changing to Pause state (Resuming)
+                btnText.textContent = "Pause";
+                pauseBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+                pauseBtn.classList.remove('bg-green-600', 'hover:bg-green-500');
+                
+                // Trigger the resolve function to unblock the 'delay' function
+                if (resumeResolve) {
+                    resumeResolve();
+                    resumeResolve = null;
+                }
+            }
+        }
+
+        async function startLookup() {
+            if (isRunning) return;
+            
+            const domain = document.getElementById('domainInput').value.trim() || 'example.com';
+            
+            if (!domain.includes('.')) {
+                setNarrative("Please enter a valid domain (like google.com)", "neutral");
+                return;
+            }
+
+            const tldExt = domain.split('.').pop();
+            const ip = generateRandomIP();
+
+            // Reset UI State
+            isRunning = true;
+            isPaused = false;
+            resumeResolve = null;
+            
+            // UI Button Updates
+            resolveBtn.disabled = true;
+            resolveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            pauseBtn.disabled = false;
+            pauseBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            pauseBtn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+            pauseBtn.classList.remove('bg-green-600', 'hover:bg-green-500');
+            document.getElementById('pauseBtnText').textContent = "Pause";
+            
+            logContainer.innerHTML = '';
+            document.getElementById('client-status').classList.add('hidden');
+            startTime = Date.now();
+            
+            // --- Step 1: Client Request ---
+            setNarrative(`You want to visit <strong>${domain}</strong>.<br>Your computer checks its cache, doesn't find it, and asks the <strong>Resolver</strong>.`, "active");
+            log(`Client: Requesting IP for ${domain}`, 'info');
+            
+            highlightServer('client', true);
+            await delay(1500); // Replaced standard setTimeout with delay()
+            
+            // Animation: Client -> Resolver
+            log("Query sent to Recursive Resolver (8.8.8.8)", 'query');
+            await movePacket('client', 'resolver', '?');
+            highlightServer('client', false);
+            highlightServer('resolver', true);
+            
+            // --- Step 2: Resolver -> Root ---
+            setNarrative(`The Resolver is the "Librarian". It doesn't know ${domain},<br>so it asks the <strong>Root Server</strong>: "Who handles .${tldExt}?"`, "active");
+            await delay(2000); 
+            log(`Resolver: Asking Root Server for .${tldExt} location`, 'query');
+
+            // Animation: Resolver -> Root
+            await movePacket('resolver', 'root', '.');
+            highlightServer('resolver', false);
+            highlightServer('root', true);
+            
+            await delay(1000);
+            
+            // Animation: Root -> Resolver (Response)
+            setNarrative(`The Root Server replies: "I don't know the IP,<br>but here is the address for the <strong>.${tldExt} TLD Server</strong>."`, "active");
+            log(`Root: Responding with TLD server list`, 'response');
+            await movePacket('root', 'resolver', 'TLD');
+            highlightServer('root', false);
+            highlightServer('resolver', true);
+            
+            await delay(2000);
+
+            // --- Step 3: Resolver -> TLD ---
+            setNarrative(`Now the Resolver knows who manages .${tldExt}.<br>It asks the <strong>TLD Server</strong>: "Where is ${domain}?"`, "active");
+            log(`Resolver: Querying .${tldExt} TLD Server for ${domain}`, 'query');
+            
+            // Animation: Resolver -> TLD
+            await movePacket('resolver', 'tld', tldExt);
+            highlightServer('resolver', false);
+            highlightServer('tld', true);
+            
+            await delay(1000);
+            
+            // Animation: TLD -> Resolver (Response)
+            setNarrative(`The TLD Server replies: "Go to this specific<br><strong>Authoritative Server</strong>. They have the records for ${domain}."`, "active");
+            log(`TLD: Responding with Authoritative Nameservers`, 'response');
+            await movePacket('tld', 'resolver', 'NS');
+            highlightServer('tld', false);
+            highlightServer('resolver', true);
+            
+            await delay(2000);
+
+            // --- Step 4: Resolver -> Auth ---
+            setNarrative(`Almost there! The Resolver asks the <strong>Authoritative Server</strong>:<br>"What is the specific IP address for ${domain}?"`, "active");
+            log(`Resolver: Asking Authoritative Server for A-Record`, 'query');
+
+            // Animation: Resolver -> Auth
+            await movePacket('resolver', 'auth', '??');
+            highlightServer('resolver', false);
+            highlightServer('auth', true);
+            
+            await delay(1000);
+            
+            // Animation: Auth -> Resolver (Response)
+            setNarrative(`Success! The Authoritative Server checks its books<br>and responds with the IP: <span class="text-blue-400 font-bold">${ip}</span>.`, "active");
+            log(`Auth: Found A-Record: ${ip}`, 'response');
+            await movePacket('auth', 'resolver', 'IP');
+            highlightServer('auth', false);
+            highlightServer('resolver', true);
+            
+            await delay(2000);
+
+            // --- Step 5: Resolver -> Client ---
+            setNarrative(`The Resolver <strong>caches</strong> the result (so it remembers next time)<br>and gives the number to your computer.`, "active");
+            log(`Resolver: Caching result and sending to Client`, 'success');
+
+            // Animation: Resolver -> Client
+            await movePacket('resolver', 'client', '✓');
+            highlightServer('resolver', false);
+            highlightServer('client', true);
+            
+            // Final State
+            const totalTime = Date.now() - startTime;
+            setNarrative(`<strong>Simulation Complete!</strong><br>Your computer now connects to ${ip}.`, "neutral");
+            log(`Process finished in ${totalTime}ms`, 'success');
+            timerEl.innerText = `${totalTime}ms`;
+            
+            const clientStatus = document.getElementById('client-status');
+            clientStatus.innerHTML = `Connected: ${ip}`;
+            clientStatus.classList.remove('hidden');
+            
+            packet.style.display = 'none';
+            highlightServer('client', false);
+            
+            // Cleanup
+            isRunning = false;
+            resolveBtn.disabled = false;
+            resolveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            pauseBtn.disabled = true;
+            pauseBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            pauseBtn.classList.remove('bg-green-600');
+            pauseBtn.classList.add('bg-slate-700');
+            document.getElementById('pauseBtnText').textContent = "Pause";
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+           if(packet.style.display !== 'none') {
+               packet.style.display = 'none'; 
+           }
+        });
+    </script>
+</body>
+</html>

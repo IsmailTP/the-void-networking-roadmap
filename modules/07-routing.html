@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO METADATA -->
+    <meta name="description"
+        content="Master Routing Fundamentals: Learn how routers move traffic, the role of the Default Gateway, Routing Tables, and how NAT allows private networks to access the internet.">
+    <meta name="keywords"
+        content="Routing, Default Gateway, Routing Table, Static Routing, Dynamic Routing, NAT, Network Address Translation, NAT Traversal">
+    <meta name="author" content="The Void">
+
+    <title>The Void | Routing & Network Flow</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- VARIABLES --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 1000;
+        }
+
+        .reading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .top-nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        header {
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--text-main);
+        }
+
+        .module-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .meta-badge.difficulty {
+            color: var(--accent);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        /* --- LAYOUT GRID --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 50px;
+            position: relative;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+
+        .toc {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(5px);
+        }
+
+        .toc h4 {
+            margin-bottom: 15px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .toc a {
+            display: block;
+            padding: 8px 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-decoration: none;
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            margin-left: -10px;
+            transition: all 0.2s;
+        }
+
+        .toc a:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .toc a.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* --- CONTENT STYLES --- */
+        main h2 {
+            font-size: 1.8rem;
+            margin: 0 0 10px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            scroll-margin-top: 100px;
+        }
+
+        .btn-sim {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            margin-bottom: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .btn-sim:hover {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        main section {
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            margin: 30px 0 10px;
+            color: var(--text-main);
+        }
+
+        p {
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+        }
+
+        .terminal {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            color: #c9d1d9;
+        }
+
+        .terminal-header {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 15px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .red {
+            background: #ff5f56;
+        }
+
+        .yellow {
+            background: #ffbd2e;
+        }
+
+        .green {
+            background: #27c93f;
+        }
+
+        .cmd {
+            color: var(--accent);
+        }
+
+        /* --- NAT FLOW VISUAL --- */
+        .nat-visual {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius);
+            margin: 25px 0;
+            border: 1px solid var(--border);
+        }
+
+        .nat-zone {
+            text-align: center;
+            flex: 1;
+        }
+
+        .nat-arrow {
+            color: var(--purple);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .zone-label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        .stat-val {
+            font-family: var(--font-code);
+            font-weight: bold;
+            color: var(--text-main);
+            font-size: 1.1rem;
+        }
+
+        /* --- SPECIAL BOXES --- */
+        .hackers-note {
+            background: rgba(139, 92, 246, 0.08);
+            border-left: 4px solid var(--purple);
+            padding: 20px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 25px 0;
+        }
+
+        .hackers-note h4 {
+            color: var(--purple);
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .security-check {
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: var(--radius);
+            padding: 15px 20px;
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+        }
+
+        .sc-content h4 {
+            color: var(--warning);
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .module-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-next {
+            background: var(--accent);
+            color: #000;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        @media(max-width: 900px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="reading-progress">
+        <div class="reading-bar" id="reading-bar"></div>
+    </div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="../index.html" class="back-link">← Back to Roadmap</a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 06</span>
+        </nav>
+
+        <header>
+            <div class="module-meta">
+                <span class="meta-badge difficulty">Intermediate</span>
+                <span class="meta-badge">⏱ 60 Minutes</span>
+                <span class="meta-badge">Prereq: Subnetting</span>
+            </div>
+            <h1>Routing & Network Flow</h1>
+            <p style="max-width: 700px;">Routing is the brain of the network. While a switch moves data inside a local
+                office, a router decides how to move data across the world from one network to another.</p>
+        </header>
+
+        <div class="layout-grid">
+            <aside class="sidebar">
+                <div class="toc">
+                    <h4>On this page</h4>
+                    <a href="#router">1. What is a Router?</a>
+                    <a href="#gateway">2. The Default Gateway</a>
+                    <a href="#table">3. The Routing Table</a>
+                    <a href="#types">4. Static vs Dynamic</a>
+                    <a href="#nat">5. Understanding NAT</a>
+                    <a href="#recap">📌 Module Recap</a>
+                </div>
+            </aside>
+
+            <main>
+                <!-- 1. WHAT IS A ROUTER? -->
+                <section id="router">
+                    <h2>1. What is a Router?</h2>
+                    <a href="/sim/routing.html" class="btn-sim">Launch Routing Sim</a>
+
+                    <p>A router is a Layer 3 (Network) device that connects two or more different networks. It acts as
+                        the "Traffic Controller" of the internet, reading IP addresses to decide where to send a packet
+                        next.</p>
+
+                    <div class="hackers-note">
+                        <h4>⚖️ Routing vs Switching</h4>
+                        <p><strong>Switches</strong> connect devices <em>inside</em> a network (using MAC
+                            addresses).<br>
+                            <strong>Routers</strong> connect different networks <em>together</em> (using IP addresses).
+                        </p>
+                    </div>
+                </section>
+
+                <!-- 2. DEFAULT GATEWAY -->
+                <section id="gateway">
+                    <h2>2. The Default Gateway</h2>
+                    <p>Think of the Default Gateway as the <strong>Exit Door</strong> of your network. If your computer
+                        wants to send data to an IP that is not on your local subnet, it sends it to the Default
+                        Gateway.</p>
+
+                    <div class="terminal">
+                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span
+                                class="dot green"></span></div>
+                        <span class="cmd">C:\></span> ipconfig<br>
+                        IPv4 Address. . . . . : 192.168.1.15<br>
+                        Subnet Mask . . . . . : 255.255.255.0<br>
+                        <span style="color: var(--accent);">Default Gateway . . . : 192.168.1.1</span>
+                    </div>
+
+                    <div class="security-check">
+                        <div class="sc-content">
+                            <h4>🛡️ Attack Relevance</h4>
+                            <p>If an attacker can impersonate the Default Gateway (via ARP Spoofing), they can intercept
+                                and modify all outbound internet traffic from a target machine.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. ROUTING TABLE -->
+                <section id="table">
+                    <h2>3. The Routing Table</h2>
+                    <p>Every router (and even your PC) maintains a routing table—a map of where to send data based on
+                        the destination IP address.</p>
+
+                    <div class="terminal">
+                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span
+                                class="dot green"></span></div>
+                        <span class="cmd">root@kali:~#</span> route -n<br>
+                        Destination Gateway Genmask Flags Iface<br>
+                        0.0.0.0 192.168.1.1 0.0.0.0 UG eth0<br>
+                        192.168.1.0 0.0.0.0 255.255.255.0 U eth0
+                    </div>
+
+                    <p>The entry <code>0.0.0.0</code> is the <strong>Default Route</strong>. It basically says: "If the
+                        destination isn't local, send it to the gateway."</p>
+                </section>
+
+                <!-- 4. STATIC VS DYNAMIC -->
+                <section id="types">
+                    <h2>4. Static vs Dynamic Routing</h2>
+                    <p>How do routing tables get populated? There are two main methods:</p>
+
+                    <ul style="padding-left: 20px; color: var(--text-muted);">
+                        <li><strong>Static Routing:</strong> An administrator manually types the routes. Secure and
+                            simple, but doesn't scale for the whole internet.</li>
+                        <li><strong>Dynamic Routing:</strong> Routers talk to each other using protocols (like OSPF,
+                            BGP, or RIP) to automatically find the fastest paths.</li>
+                    </ul>
+
+                    <div class="security-check" style="border-color: var(--purple);">
+                        <div class="sc-content">
+                            <h4 style="color: var(--purple);">⚠️ BGP Hijacking</h4>
+                            <p>The entire internet runs on BGP (Border Gateway Protocol). If a malicious entity
+                                announces fake routes, they can "hijack" traffic meant for services like Google,
+                                redirecting it to their own servers.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. NAT -->
+                <section id="nat">
+                    <h2>5. Understanding NAT</h2>
+                    <a href="/sim/nat.html" class="btn-sim">Launch NAT Visualizer</a>
+                    <p>Network Address Translation (NAT) allows thousands of devices on a private network (like
+                        192.168.x.x) to share a single public IP address provided by an ISP.</p>
+
+                    <div class="nat-visual">
+                        <div class="nat-zone">
+                            <span class="stat-val">192.168.1.5</span>
+                            <span class="zone-label">Private IP (Internal)</span>
+                        </div>
+                        <div class="nat-arrow">⟶ [NAT GATEWAY] ⟶</div>
+                        <div class="nat-zone">
+                            <span class="stat-val" style="color: var(--purple);">203.0.113.42</span>
+                            <span class="zone-label">Public IP (External)</span>
+                        </div>
+                    </div>
+
+                    <div class="hackers-note">
+                        <h4>💀 Attacker Perspective: The NAT Shield</h4>
+                        <p>NAT acts as a basic one-way firewall. It's easy for internal devices to connect "out," but
+                            very hard for an internet attacker to connect "in" unless <strong>Port Forwarding</strong>
+                            is specifically configured.</p>
+                    </div>
+                </section>
+
+                <!-- RECAP -->
+                <section id="recap" style="border-bottom: none;">
+                    <div class="recap-box"
+                        style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3>📌 Module Recap</h3>
+                        <ul style="padding-left: 20px;">
+                            <li style="margin-bottom: 10px;"><strong>Routers</strong> are the traffic directors of the
+                                internet (Layer 3).</li>
+                            <li style="margin-bottom: 10px;">The <strong>Default Gateway</strong> is your route to the
+                                internet.</li>
+                            <li style="margin-bottom: 10px;"><strong>Routing Tables</strong> map IP destinations to
+                                physical interfaces.</li>
+                            <li style="margin-bottom: 10px;"><strong>NAT</strong> saves IPv4 space by translating
+                                private IPs to one public IP.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FOOTER NAV -->
+                <div class="module-footer">
+                    <a href="06-dns.html" class="back-link">← Previous Module</a>
+                    <div>
+                        <div
+                            style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">
+                            Next: Network Devices
+
+                        </div>
+                        <a href="08-devices.html" class="btn-next">Next Module →</a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Reading Progress
+        window.addEventListener("scroll", () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById("reading-bar").style.width = progress + "%";
+        });
+
+        // TOC Active Link
+        const sections = document.querySelectorAll("main section");
+        const tocLinks = document.querySelectorAll(".toc a");
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach(link => {
+                        link.classList.remove("active");
+                        if (link.getAttribute("href") === "#" + entry.target.id) {
+                            link.classList.add("active");
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(section => observer.observe(section));
+
+        // Progress Tracking
+        window.onload = function () {
+            const MODULE_ID = 5; // Corresponds to routing module
+            let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
+            if (!savedProgress.includes(MODULE_ID)) {
+                savedProgress.push(MODULE_ID);
+                localStorage.setItem('voidNetProgress', JSON.stringify(savedProgress));
+            }
+        };
+    </script>
+</body>
+
+</html>

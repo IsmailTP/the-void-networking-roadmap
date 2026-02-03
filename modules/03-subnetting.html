@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO METADATA -->
+    <meta name="description" content="Master IPv4 addressing, binary logic, and subnetting. Learn CIDR, private vs public IPs, and network boundaries for cybersecurity.">
+    <meta name="keywords" content="IPv4, Subnetting, CIDR, Binary, Private IP, Public IP, Loopback, APIPA, Networking Lab">
+    <meta name="author" content="The Void">
+    
+    <title>The Void | IP Addressing & Subnetting</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- VARIABLES --- */
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;        
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* --- READING PROGRESS BAR --- */
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 1000;
+        }
+        .reading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* --- NAV BAR --- */
+        .top-nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        /* --- HEADER & METADATA --- */
+        header { margin-bottom: 50px; }
+        h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--text-main); }
+        .module-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.05);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .meta-badge.difficulty { color: var(--warning); border-color: rgba(245, 158, 11, 0.3); }
+
+        /* --- LAYOUT GRID --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 50px;
+            position: relative;
+        }
+
+        /* --- STICKY SIDEBAR --- */
+        .sidebar {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+        .toc {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(5px);
+        }
+        .toc h4 { margin-bottom: 15px; color: var(--text-main); font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
+        .toc a { 
+            display: block; 
+            padding: 8px 0; 
+            color: var(--text-muted); 
+            font-size: 0.9rem; 
+            text-decoration: none; 
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            margin-left: -10px;
+            transition: all 0.2s;
+        }
+        .toc a:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
+        .toc a.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* --- MAIN CONTENT --- */
+        main section {
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        main h2 { 
+            font-size: 1.8rem; 
+            margin: 0 0 10px; 
+            color: var(--text-main); 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            scroll-margin-top: 100px;
+        }
+        h3 { font-size: 1.3rem; margin: 30px 0 10px; color: var(--text-main); }
+        p { margin-bottom: 20px; color: var(--text-muted); font-size: 1.05rem; }
+
+        /* --- BINARY CHART --- */
+        .binary-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin: 25px 0;
+        }
+        .bit-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .bit-val { color: var(--accent); font-family: var(--font-code); font-weight: bold; font-size: 1.2rem; display: block; }
+        .bit-pos { color: var(--text-muted); font-size: 0.75rem; font-family: var(--font-code); }
+
+        /* --- WARNING BOX --- */
+        .danger-zone {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid var(--danger);
+            padding: 20px;
+            border-radius: var(--radius);
+            margin: 25px 0;
+            color: #fca5a5;
+        }
+        .danger-zone strong { color: var(--danger); }
+
+        /* --- SPECIAL BOXES (Shared) --- */
+        .hackers-note {
+            background: rgba(139, 92, 246, 0.08);
+            border-left: 4px solid var(--purple);
+            padding: 20px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 25px 0;
+        }
+        .security-check {
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: var(--radius);
+            padding: 15px 20px;
+            margin: 25px 0;
+            display: flex;
+            gap: 15px;
+        }
+        .sc-content h4 { color: var(--accent); margin-bottom: 5px; font-size: 1rem; }
+
+        /* --- TABLES --- */
+        .table-container { overflow-x: auto; margin: 25px 0; border: 1px solid var(--border); border-radius: var(--radius); }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
+        th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); border-bottom: 1px solid var(--border); }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.9rem; }
+
+        /* --- BUTTONS --- */
+        .btn-sim {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+        .btn-sim:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent-glow); }
+
+        .module-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-next {
+            background: var(--accent);
+            color: #000;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-next:hover { transform: translateY(-2px); box-shadow: 0 0 15px var(--accent-glow); }
+
+        @media(max-width: 900px) {
+            .layout-grid { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="reading-progress">
+        <div class="reading-bar" id="reading-bar"></div>
+    </div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="../index.html" class="back-link">← Back to Roadmap</a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 03</span>
+        </nav>
+
+        <header>
+            <div class="module-meta">
+                <span class="meta-badge difficulty">Difficult</span>
+                <span class="meta-badge">⏱ 2-3 Hours</span>
+                <span class="meta-badge">Prereq: Module 02</span>
+            </div>
+            <h1>IP Addressing & Subnetting</h1>
+            <p style="max-width: 700px;">Subnetting is the language of network boundaries. Without it, you cannot define firewall rules, map targets, or pivot through an enterprise network.</p>
+        </header>
+
+        <div class="layout-grid">
+            <aside class="sidebar">
+                <div class="toc">
+                    <h4>On this page</h4>
+                    <a href="#binary">1. Binary Logic</a>
+                    <a href="#special-ip">2. Special IP Ranges</a>
+                    <a href="#cidr">3. Subnetting & CIDR</a>
+                    <a href="#segmentation">4. Network Segmentation</a>
+                    <a href="#recap">📌 Module Recap</a>
+                </div>
+            </aside>
+
+            <main>
+                <!-- DANGER ZONE CALLOUT -->
+                <div class="danger-zone">
+                    <strong>⚠️ GATEKEEPER:</strong> Mastering this math is mandatory. If you cannot calculate a usable host range for a <code>/27</code> network in your head, do not proceed to the exploitation modules.
+                </div>
+
+                <!-- 1. BINARY LOGIC -->
+                <section id="binary">
+                    <h2>1. Binary Logic</h2>
+                    <p>An IPv4 address is just a 32-bit number hidden behind four octets. To understand masks, you must master the "Power of 2".</p>
+                    
+                    <div class="binary-container">
+                        <div class="bit-card"><span class="bit-val">128</span><span class="bit-pos">2⁷</span></div>
+                        <div class="bit-card"><span class="bit-val">64</span><span class="bit-pos">2⁶</span></div>
+                        <div class="bit-card"><span class="bit-val">32</span><span class="bit-pos">2⁵</span></div>
+                        <div class="bit-card"><span class="bit-val">16</span><span class="bit-pos">2⁴</span></div>
+                        <div class="bit-card"><span class="bit-val">8</span><span class="bit-pos">2³</span></div>
+                        <div class="bit-card"><span class="bit-val">4</span><span class="bit-pos">2²</span></div>
+                        <div class="bit-card"><span class="bit-val">2</span><span class="bit-pos">2¹</span></div>
+                        <div class="bit-card"><span class="bit-val">1</span><span class="bit-pos">2⁰</span></div>
+                    </div>
+
+                    <div class="hackers-note">
+                        <h4>Conversion Tip</h4>
+                        <p>To convert decimal to binary, simply subtract the largest possible power of 2. <br>
+                        Example: <strong>192</strong> = 128 + 64. So in binary, it is <code>11000000</code>.</p>
+                    </div>
+                </section>
+
+                <!-- 2. SPECIAL IP RANGES -->
+                <section id="special-ip">
+                    <h2>2. Special IP Ranges</h2>
+                    <p>RFC 1918 defines the addresses we use internally. These are never "routable" on the public internet.</p>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Type</th><th>Range</th><th>Typical Use</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><strong>Class A Private</strong></td><td>10.0.0.0/8</td><td>Enterprises, Data Centers</td></tr>
+                                <tr><td><strong>Class B Private</strong></td><td>172.16.0.0/12</td><td>Universities, Labs</td></tr>
+                                <tr><td><strong>Class C Private</strong></td><td>192.168.0.0/16</td><td>Home Networks, Wi-Fi</td></tr>
+                                <tr><td><strong>Loopback</strong></td><td>127.0.0.1</td><td>The local machine (Self)</td></tr>
+                                <tr><td><strong>APIPA</strong></td><td>169.254.x.x</td><td>DHCP Failure (Bad sign)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="security-check">
+                        <div class="sc-content">
+                            <h4>🕵️ Recon Insight</h4>
+                            <p>If you perform a scan and see a 169.254.x.x address, the target has failed to get an IP. This machine is isolated and likely misconfigured—an easy target.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. CIDR -->
+                <section id="cidr">
+                    <h2>3. Subnetting & CIDR</h2>
+                    <p>CIDR (Classless Inter-Domain Routing) notation tells us how many bits are used for the <strong>Network</strong> vs the <strong>Host</strong>.</p>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>CIDR</th><th>Mask</th><th>Total Hosts</th><th>Usable Hosts</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>/24</td><td>255.255.255.0</td><td>256</td><td>254</td></tr>
+                                <tr><td>/25</td><td>255.255.255.128</td><td>128</td><td>126</td></tr>
+                                <tr><td>/26</td><td>255.255.255.192</td><td>64</td><td>62</td></tr>
+                                <tr><td>/27</td><td>255.255.255.224</td><td>32</td><td>30</td></tr>
+                                <tr><td>/30</td><td>255.255.255.252</td><td>4</td><td>2</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mini-lab">
+                        <h4>🧪 The "Minus 2" Rule</h4>
+                        <p>In every subnet, the <strong>first</strong> IP is the Network ID and the <strong>last</strong> IP is the Broadcast. You cannot assign these to a computer. <br>
+                        <em>Formula: (2^bits) - 2 = Usable Hosts.</em></p>
+                        <a href="/sim/subnet-calc.html" class="btn-sim">Launch Subnet Trainer</a>
+                    </div>
+                </section>
+
+                <!-- 4. SEGMENTATION -->
+                <section id="segmentation">
+                    <h2>4. Network Segmentation</h2>
+                    <p>By splitting a large network (e.g., a /16) into many small subnets (e.g., /24s), admins can enforce security policies between departments.</p>
+
+                    <div class="security-check" style="border-color: var(--purple);">
+                        <div class="sc-content">
+                            <h4 style="color: var(--purple);">🛡️ Lateral Movement Defense</h4>
+                            <p>If a hacker compromises a PC in the "Guest Wi-Fi" subnet, they shouldn't be able to "see" the "Server Room" subnet. Proper subnetting creates <strong>Internal Choke Points</strong> for firewalls to inspect traffic.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- RECAP -->
+                <section id="recap" style="border-bottom: none;">
+                    <div class="recap-box" style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3>📌 Module Recap</h3>
+                        <ul style="padding-left: 20px;">
+                            <li style="margin-bottom: 10px;"><strong>Binary</strong> is the foundation of all subnet masking.</li>
+                            <li style="margin-bottom: 10px;"><strong>Private IPs</strong> stay internal; <strong>Public IPs</strong> are internet-facing.</li>
+                            <li style="margin-bottom: 10px;"><strong>CIDR</strong> notation (like /24) is a shorthand for the subnet mask.</li>
+                            <li style="margin-bottom: 10px;"><strong>Segmentation</strong> uses subnets to isolate sensitive data from common users.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FOOTER NAV -->
+                <div class="module-footer">
+                    <a href="02-osi-model.html" class="back-link">← Previous Module</a>
+                    <div>
+                        <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">Next: MAC & Local Network</div>
+                        <a href="05-mac-arp.html" class="btn-next">Next Module →</a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Reading Progress
+        window.addEventListener("scroll", () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById("reading-bar").style.width = progress + "%";
+        });
+
+        // TOC Active Link
+        const sections = document.querySelectorAll("main section");
+        const tocLinks = document.querySelectorAll(".toc a");
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach(link => {
+                        link.classList.remove("active");
+                        if (link.getAttribute("href") === "#" + entry.target.id) {
+                            link.classList.add("active");
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(section => observer.observe(section));
+
+        // Progress Tracking
+        window.onload = function() {
+            const MODULE_ID = 2; // Unique ID for Phase 3
+            let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
+            if(!savedProgress.includes(MODULE_ID)) {
+                savedProgress.push(MODULE_ID);
+                localStorage.setItem('voidNetProgress', JSON.stringify(savedProgress));
+            }
+        };
+    </script>
+</body>
+</html>

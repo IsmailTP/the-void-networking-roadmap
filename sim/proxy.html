@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | Proxy Simulator</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #0a0a0f;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #13131f;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a40;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f0ff;
+        }
+
+        .neon-border {
+            box-shadow: 0 0 5px rgba(0, 240, 255, 0.2), inset 0 0 10px rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        .scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 50;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(0, 240, 255, 0.03) 50%, rgba(0, 0, 0, 0) 100%);
+            opacity: 0.1;
+            position: absolute;
+            bottom: 100%;
+            animation: scanline 10s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanline {
+            0% {
+                bottom: 100%;
+            }
+
+            100% {
+                bottom: -100px;
+            }
+        }
+
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Status Badges */
+        .status-badge-200 {
+            color: #05ffa1;
+            border-color: #05ffa1;
+            background-color: rgba(5, 255, 161, 0.1);
+        }
+
+        .status-badge-error {
+            color: #ff2a6d;
+            border-color: #ff2a6d;
+            background-color: rgba(255, 42, 109, 0.1);
+        }
+
+        .status-badge-pending {
+            color: #ffce00;
+            border-color: #ffce00;
+            background-color: rgba(255, 206, 0, 0.1);
+        }
+
+        .status-badge-default {
+            color: #9ca3af;
+            border-color: #4b5563;
+        }
+
+        /* Method Badges */
+        .method-get {
+            color: #60a5fa;
+            background-color: rgba(96, 165, 250, 0.1);
+        }
+
+        .method-post {
+            color: #4ade80;
+            background-color: rgba(74, 222, 128, 0.1);
+        }
+
+        .method-put {
+            color: #fb923c;
+            background-color: rgba(251, 146, 60, 0.1);
+        }
+
+        .method-delete {
+            color: #f87171;
+            background-color: rgba(248, 113, 113, 0.1);
+        }
+
+        .back-nav {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: #0d1117;
+            border-bottom: 1px solid #1c1c2e;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 60;
+            font-size: 0.85rem;
+        }
+
+        .back-nav a {
+            text-decoration: none;
+            color: #94a3b8;
+            transition: color 0.2s;
+        }
+
+        .back-nav a:hover {
+            color: #00f0ff;
+        }
+
+        .app-container {
+            height: calc(100vh - 40px);
+            margin-top: 40px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="scanline"></div>
+
+    <!-- Navigation -->
+    <nav class="back-nav">
+        <a href="../modules/08-devices.html">← Back to Module 08</a>
+        <span style="font-family: 'JetBrains Mono'; color: #475569; margin-left: auto; font-size: 0.75rem;">PROXY
+            SIMULATOR v1.0</span>
+    </nav>
+
+    <div class="app-container flex w-full overflow-hidden relative">
+
+        <!-- LEFT PANEL: Client & History -->
+        <div class="w-1/4 min-w-[300px] border-r border-[#1c1c2e] flex flex-col bg-[#0a0a0f]">
+            <div class="p-4 border-b border-[#1c1c2e]">
+                <h2 class="text-[#00f0ff] font-bold mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-terminal"></i> CLIENT SIMULATOR
+                </h2>
+                <div class="space-y-3">
+                    <div class="flex gap-2">
+                        <select id="methodInput"
+                            class="bg-[#13131f] border border-[#1c1c2e] rounded p-2 text-[#00f0ff] outline-none focus:border-[#00f0ff]">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                        <input type="text" id="urlInput" value="https://api.server.io/users"
+                            class="bg-[#13131f] border border-[#1c1c2e] rounded p-2 flex-1 outline-none focus:border-[#00f0ff] text-white"
+                            placeholder="https://api...">
+                    </div>
+
+                    <textarea id="payloadInput"
+                        class="hidden w-full bg-[#13131f] border border-[#1c1c2e] rounded p-2 text-xs font-mono h-20 outline-none focus:border-[#00f0ff] text-gray-300 resize-none"
+                        placeholder='{"key": "value"}'></textarea>
+
+                    <button onclick="sendRequest()"
+                        class="w-full bg-[#00f0ff]/10 hover:bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/50 py-2 rounded transition-all font-bold tracking-wider flex items-center justify-center gap-2">
+                        <i class="fa-regular fa-paper-plane"></i> TRANSMIT
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto p-2 space-y-2" id="requestList">
+                <div
+                    class="flex justify-between items-center px-2 py-1 text-xs text-gray-500 uppercase tracking-widest">
+                    <span>Traffic History</span>
+                    <button onclick="clearTraffic()" class="hover:text-[#ff2a6d] transition-colors"><i
+                            class="fa-solid fa-trash"></i></button>
+                </div>
+                <!-- Requests injected here -->
+                <div id="empty-msg" class="text-center text-gray-600 mt-10 italic">No traffic detected</div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: Inspector & Proxy Logic -->
+        <div class="flex-1 flex flex-col bg-[#13131f]/50 relative overflow-hidden">
+            <div class="absolute inset-0 opacity-5 pointer-events-none"
+                style="background-image: radial-gradient(#2a2a40 1px, transparent 1px); background-size: 20px 20px;">
+            </div>
+
+            <!-- Top Bar -->
+            <div
+                class="h-14 border-b border-[#1c1c2e] flex justify-between items-center px-6 bg-[#0a0a0f]/80 backdrop-blur">
+                <div class="flex items-center gap-3">
+                    <div id="status-indicator" class="w-3 h-3 rounded-full bg-gray-600"></div>
+                    <h1 class="text-lg font-bold text-gray-100 tracking-wider">PROXY INSPECTOR</h1>
+                </div>
+                <div class="flex items-center gap-2 bg-[#13131f] rounded-full p-1 border border-[#1c1c2e]">
+                    <button onclick="setMode('INTERCEPT')" id="btn-intercept"
+                        class="px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 bg-[#ffce00] text-black shadow-lg shadow-yellow-500/20">
+                        <i class="fa-solid fa-shield-halved"></i> INTERCEPT
+                    </button>
+                    <button onclick="setMode('FORWARD')" id="btn-forward"
+                        class="px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-globe"></i> AUTO-FWD
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Inspector Content -->
+            <div class="flex-1 overflow-y-auto p-6 relative z-10" id="inspector-content">
+                <div class="h-full flex flex-col items-center justify-center text-gray-600 space-y-4">
+                    <i class="fa-solid fa-file-code text-4xl opacity-20"></i>
+                    <p class="font-mono text-sm">Select a packet from the traffic history to inspect</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Logs -->
+        <div class="w-64 bg-black border-l border-[#1c1c2e] flex flex-col">
+            <div class="p-3 border-b border-[#1c1c2e] bg-[#13131f]/30">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-file-code"></i> System Logs
+                </h3>
+            </div>
+            <div class="flex-1 overflow-y-auto p-2 font-mono text-[10px] space-y-1" id="log-panel">
+                <!-- Logs injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA & STATE ---
+        let requests = [];
+        let selectedId = null;
+        let proxyMode = 'INTERCEPT';
+
+        // --- ELEMENTS ---
+        const requestListEl = document.getElementById('requestList');
+        const inspectorContentEl = document.getElementById('inspector-content');
+        const logPanelEl = document.getElementById('log-panel');
+        const emptyMsgEl = document.getElementById('empty-msg');
+
+        // --- INIT ---
+        addLog("Proxy initialized. Listening on port 8080...");
+
+        // --- EVENT LISTENERS UI ---
+        document.getElementById('methodInput').addEventListener('change', (e) => {
+            const payloadInput = document.getElementById('payloadInput');
+            if (e.target.value === 'GET') payloadInput.classList.add('hidden');
+            else payloadInput.classList.remove('hidden');
+        });
+
+        // --- CORE FUNCTIONS ---
+
+        function setMode(mode) {
+            proxyMode = mode;
+            const btnInt = document.getElementById('btn-intercept');
+            const btnFwd = document.getElementById('btn-forward');
+
+            if (mode === 'INTERCEPT') {
+                btnInt.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 bg-[#ffce00] text-black shadow-lg shadow-yellow-500/20";
+                btnFwd.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 text-gray-400 hover:text-white";
+            } else {
+                btnFwd.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 bg-[#05ffa1] text-black shadow-lg shadow-green-500/20";
+                btnInt.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 text-gray-400 hover:text-white";
+            }
+            addLog(`System: Mode switched to ${mode}`);
+        }
+
+        function addLog(msg) {
+            const time = new Date().toLocaleTimeString();
+            const logItem = document.createElement('div');
+            logItem.className = "flex gap-2 text-gray-400 hover:text-white transition-colors border-l-2 border-transparent hover:border-[#00f0ff] pl-1";
+
+            let colorClass = 'text-green-400';
+            if (msg.includes('Client')) colorClass = 'text-blue-400';
+            else if (msg.includes('Server')) colorClass = 'text-purple-400';
+
+            logItem.innerHTML = `<span class="opacity-50 select-none">[${time}]</span><span class="${colorClass}">${msg}</span>`;
+            logPanelEl.appendChild(logItem);
+            logPanelEl.scrollTop = logPanelEl.scrollHeight;
+        }
+
+        function sendRequest() {
+            const method = document.getElementById('methodInput').value;
+            const url = document.getElementById('urlInput').value;
+            const body = document.getElementById('payloadInput').value || '{}';
+
+            const newId = Date.now().toString();
+            const req = {
+                id: newId,
+                url: url,
+                method: method,
+                headers: {
+                    "User-Agent": "CyberClient/1.0",
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer token_123"
+                },
+                body: method !== 'GET' ? body : null,
+                status: 'PENDING',
+                response: null,
+                timestamp: new Date().toLocaleTimeString()
+            };
+
+            addLog(`Client: Sending ${req.method} request to ${req.url}`);
+
+            if (proxyMode === 'FORWARD') {
+                req.status = 'FORWARDED';
+                requests.unshift(req);
+                renderRequestList();
+                setTimeout(() => processResponse(newId), 800);
+            } else {
+                req.status = 'INTERCEPTED';
+                requests.unshift(req);
+                selectedId = newId;
+                renderRequestList();
+                renderInspector();
+            }
+        }
+
+        function processResponse(reqId) {
+            const req = requests.find(r => r.id === reqId);
+            if (!req) return;
+
+            let responseStatus = 200;
+            let responseBody = { message: "Success" };
+
+            // Mock Logic
+            if (req.url.includes("error")) {
+                responseStatus = 500;
+                responseBody = { error: "Internal Server Error" };
+            } else if (req.url.includes("admin")) {
+                responseStatus = 403;
+                responseBody = { error: "Forbidden: Admin access required" };
+            } else if (req.url.includes("users")) {
+                responseBody = { users: [{ id: 1, name: "Neo" }, { id: 2, name: "Trinity" }] };
+            } else if (req.method === "POST") {
+                responseStatus = 201;
+                responseBody = { message: "Resource created", id: Math.floor(Math.random() * 1000) };
+            }
+
+            req.status = responseStatus;
+            req.response = {
+                status: responseStatus,
+                headers: { "Server": "Matrix-v1", "X-Proxy-Time": "24ms" },
+                body: JSON.stringify(responseBody, null, 2)
+            };
+
+            addLog(`Server: Responded to ${reqId} with ${responseStatus}`);
+            renderRequestList();
+            if (selectedId === reqId) renderInspector();
+        }
+
+        function updateRequestData(id, field, value) {
+            const req = requests.find(r => r.id === id);
+            if (req) {
+                req[field] = value;
+                renderRequestList();
+                addLog(`Proxy: Modified request ${id} (${field}).`);
+            }
+        }
+
+        function dropRequest(id) {
+            const req = requests.find(r => r.id === id);
+            if (req) {
+                req.status = 'DROPPED';
+                req.response = { status: 0, body: "Connection Closed by Proxy" };
+                addLog(`Proxy: Dropped request ${id}.`);
+                selectedId = null;
+                renderRequestList();
+                renderInspector();
+            }
+        }
+
+        function forwardRequest(id) {
+            const req = requests.find(r => r.id === id);
+            if (req) {
+                req.status = 'FORWARDED';
+                addLog(`Proxy: Forwarded request ${id} to upstream server.`);
+                renderRequestList();
+                renderInspector();
+                setTimeout(() => processResponse(id), 1000);
+            }
+        }
+
+        function clearTraffic() {
+            requests = [];
+            selectedId = null;
+            renderRequestList();
+            renderInspector();
+            addLog("System: Traffic log cleared.");
+        }
+
+        function selectRequest(id) {
+            selectedId = id;
+            renderRequestList();
+            renderInspector();
+        }
+
+        // --- RENDERERS ---
+
+        function renderRequestList() {
+            if (requests.length === 0) {
+                emptyMsgEl.style.display = 'block';
+                requestListEl.innerHTML = '';
+                requestListEl.appendChild(document.querySelector('.flex.justify-between')); // keep header
+                requestListEl.appendChild(emptyMsgEl);
+                return;
+            }
+
+            emptyMsgEl.style.display = 'none';
+            // Keep header
+            const header = requestListEl.querySelector('.flex.justify-between');
+            requestListEl.innerHTML = '';
+            requestListEl.appendChild(header);
+
+            requests.forEach(req => {
+                const el = document.createElement('div');
+                const isSelected = selectedId === req.id;
+
+                // Styles
+                let statusColor = "status-badge-default";
+                let statusText = req.status;
+                if (req.status === 'INTERCEPTED') { statusColor = 'status-badge-pending'; statusText = 'PENDING'; }
+                else if (req.status === 200 || req.status === 201) { statusColor = 'status-badge-200'; }
+                else if (req.status === 'DROPPED' || req.status >= 400) { statusColor = 'status-badge-error'; }
+
+                let methodColor = "method-get";
+                if (req.method === 'POST') methodColor = "method-post";
+                if (req.method === 'PUT') methodColor = "method-put";
+                if (req.method === 'DELETE') methodColor = "method-delete";
+
+                el.className = `p-3 rounded border cursor-pointer transition-all hover:bg-[#1c1c2e]/50 mb-2 ${isSelected ? 'bg-[#1c1c2e] border-[#00f0ff] neon-border' : 'bg-[#13131f] border-[#1c1c2e]'}`;
+                el.onclick = () => selectRequest(req.id);
+
+                el.innerHTML = `
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-xs px-2 py-0.5 rounded font-bold ${methodColor}">${req.method}</span>
+                        <span class="text-xs text-gray-500 font-mono">${req.timestamp}</span>
+                    </div>
+                    <div class="text-xs truncate text-gray-300 font-mono mb-2" title="${req.url}">${req.url}</div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs px-2 py-0.5 rounded border font-bold ${statusColor}">${statusText}</span>
+                        ${req.status === 'INTERCEPTED' ? '<i class="fa-solid fa-pause text-[#ffce00] animate-pulse"></i>' : ''}
+                    </div>
+                `;
+                requestListEl.appendChild(el);
+            });
+        }
+
+        function renderInspector() {
+            if (!selectedId) {
+                inspectorContentEl.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-gray-600 space-y-4">
+                        <i class="fa-solid fa-file-code text-4xl opacity-20"></i>
+                        <p class="font-mono text-sm">Select a packet from the traffic history to inspect</p>
+                    </div>`;
+                document.getElementById('status-indicator').className = "w-3 h-3 rounded-full bg-gray-600";
+                return;
+            }
+
+            const req = requests.find(r => r.id === selectedId);
+            document.getElementById('status-indicator').className = "w-3 h-3 rounded-full bg-[#00f0ff] animate-pulse";
+
+            const isIntercepted = req.status === 'INTERCEPTED';
+
+            let headersHtml = '';
+            for (const [k, v] of Object.entries(req.headers)) {
+                headersHtml += `<div class="flex gap-2"><span class="text-purple-400">${k}:</span><span class="text-gray-300 truncate">${v}</span></div>`;
+            }
+
+            let bodySection = '';
+            if (req.method !== 'GET') {
+                bodySection = `
+                    <div class="space-y-2">
+                        <span class="text-gray-500 font-mono text-xs">Body</span>
+                        <textarea onchange="updateRequestData('${req.id}', 'body', this.value)" ${isIntercepted ? '' : 'disabled'} class="w-full h-32 bg-[#13131f] border border-[#1c1c2e] rounded p-3 text-xs font-mono resize-none focus:outline-none focus:border-[#00f0ff] ${isIntercepted ? 'text-white' : 'text-gray-500 cursor-not-allowed'}">${req.body || ''}</textarea>
+                    </div>
+                `;
+            }
+
+            let actionsHtml = '';
+            if (isIntercepted) {
+                actionsHtml = `
+                    <div class="p-4 border-t border-[#1c1c2e] bg-[#1c1c2e]/10 flex justify-end gap-3">
+                        <button onclick="dropRequest('${req.id}')" class="px-4 py-2 rounded text-xs font-bold border border-[#ff2a6d] text-[#ff2a6d] hover:bg-[#ff2a6d]/10 transition-colors">
+                            DROP PACKET
+                        </button>
+                        <button onclick="forwardRequest('${req.id}')" class="px-6 py-2 rounded text-xs font-bold bg-[#05ffa1] text-black hover:bg-green-400 shadow-[0_0_15px_rgba(5,255,161,0.3)] transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
+                            FORWARD TO SERVER <i class="fa-solid fa-play text-[10px]"></i>
+                        </button>
+                    </div>
+                `;
+            }
+
+            let responseHtml = '';
+            if (req.response) {
+                let statusClass = req.status === 200 || req.status === 201 ? 'status-badge-200' : 'status-badge-error';
+                responseHtml = `
+                  <div class="bg-[#0a0a0f] border border-[#1c1c2e] rounded-lg overflow-hidden shadow-2xl animate-pulse-slow mt-6">
+                    <div class="bg-[#1c1c2e]/30 px-4 py-2 border-b border-[#1c1c2e] flex justify-between items-center">
+                      <span class="text-blue-400 font-bold text-xs uppercase tracking-wider">Server Response</span>
+                      <span class="text-xs px-2 py-0.5 rounded border font-bold ${statusClass}">${req.response.status}</span>
+                    </div>
+                    <div class="p-4 space-y-2">
+                      <div class="text-xs font-mono text-gray-500 mb-2">Payload:</div>
+                      <pre class="bg-[#13131f]/50 p-3 rounded text-xs font-mono text-blue-200 overflow-x-auto border border-blue-900/30">${req.response.body}</pre>
+                    </div>
+                  </div>
+                `;
+            }
+
+            inspectorContentEl.innerHTML = `
+                <div class="space-y-6 max-w-3xl mx-auto">
+                    <!-- Request Header Card -->
+                    <div class="bg-[#0a0a0f] border border-[#1c1c2e] rounded-lg overflow-hidden shadow-2xl">
+                        <div class="bg-[#1c1c2e]/30 px-4 py-2 border-b border-[#1c1c2e] flex justify-between items-center">
+                            <span class="text-[#00f0ff] font-bold text-xs uppercase tracking-wider">Request Packet #${req.id.slice(-4)}</span>
+                            ${isIntercepted ? '<span class="text-[#ffce00] text-xs font-bold animate-pulse">HELD BY PROXY</span>' : ''}
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div class="grid grid-cols-[80px_1fr] gap-4 items-center">
+                                <span class="text-gray-500 font-mono text-xs text-right">Endpoint</span>
+                                <input type="text" onchange="updateRequestData('${req.id}', 'url', this.value)" ${isIntercepted ? '' : 'disabled'} class="w-full bg-[#13131f] border border-[#1c1c2e] p-2 rounded text-sm font-mono ${isIntercepted ? 'text-white' : 'text-gray-500 cursor-not-allowed'}" value="${req.url}">
+                            </div>
+
+                            <div class="space-y-2">
+                                <span class="text-gray-500 font-mono text-xs">Headers</span>
+                                <div class="bg-[#13131f] border border-[#1c1c2e] rounded p-2 text-xs font-mono text-green-300 max-h-32 overflow-y-auto">
+                                    ${headersHtml}
+                                </div>
+                            </div>
+                            
+                            ${bodySection}
+                        </div>
+                        ${actionsHtml}
+                    </div>
+                    ${responseHtml}
+                </div>
+            `;
+        }
+
+    </script>
+</body>
+
+</html>

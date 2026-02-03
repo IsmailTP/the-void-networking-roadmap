@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO METADATA -->
+    <meta name="description" content="Interactive Switch Visualizer: Learn how Layer 2 switches use CAM tables to map MAC addresses to physical ports and handle unicast vs broadcast traffic.">
+    <meta name="author" content="The Void">
+    
+    <title>The Void | Virtual Lab: Switching Logic</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <style>
+        /* --- CORE THEME --- */
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --bg-input: #0d1117;
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;        
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .reading-progress {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: transparent; z-index: 1000;
+        }
+        .reading-bar {
+            height: 100%; width: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 20px 60px; }
+
+        .top-nav {
+            padding: 20px 0; border-bottom: 1px solid var(--border);
+            margin-bottom: 40px; display: flex; align-items: center; justify-content: space-between;
+        }
+        .back-link {
+            display: flex; align-items: center; gap: 8px; color: var(--text-muted);
+            font-weight: 500; text-decoration: none; transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        header { margin-bottom: 40px; }
+        h1 { font-size: 2.2rem; margin-bottom: 10px; color: var(--text-main); }
+        .meta-badge {
+            display: inline-flex; align-items: center; background: rgba(34, 197, 94, 0.1);
+            padding: 5px 15px; border-radius: 50px; font-size: 0.8rem;
+            color: var(--accent); border: 1px solid rgba(34, 197, 94, 0.3);
+            font-family: var(--font-code); text-transform: uppercase;
+        }
+
+        /* --- LAYOUT --- */
+        .layout-grid {
+            display: grid; grid-template-columns: 320px 1fr; gap: 40px;
+        }
+
+        /* --- CAM TABLE TERMINAL --- */
+        .terminal {
+            background: var(--bg-input); border: 1px solid var(--border);
+            border-radius: 8px; padding: 20px; font-family: var(--font-code);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); height: 500px;
+            display: flex; flex-direction: column;
+        }
+        .terminal-header { display: flex; gap: 6px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
+        
+        .cam-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; color: #c9d1d9; }
+        .cam-table th { text-align: left; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .cam-table td { padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .highlight-row { color: var(--accent); font-weight: bold; background: rgba(34, 197, 94, 0.05); }
+
+        /* --- CANVAS AREA --- */
+        .sim-container {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); position: relative;
+            overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        #networkCanvas { width: 100%; height: 500px; background: #0d1117; cursor: crosshair; }
+
+        .scan-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--accent); box-shadow: 0 0 15px var(--accent);
+            display: none; z-index: 5; animation: scan 1.5s linear infinite;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        .status-badge {
+            position: absolute; top: 20px; left: 20px;
+            background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 50px;
+            border: 1px solid var(--border); font-family: var(--font-code);
+            font-size: 0.7rem; color: var(--accent);
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            margin-top: 25px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;
+        }
+        .btn-send {
+            background: rgba(34, 197, 94, 0.1); border: 1px solid var(--accent);
+            color: var(--accent); padding: 12px; border-radius: 8px; cursor: pointer;
+            font-family: var(--font-code); font-size: 0.8rem; font-weight: bold;
+            transition: all 0.2s; text-transform: uppercase;
+        }
+        .btn-send:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent-glow); }
+        .btn-clear {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-muted); padding: 12px; border-radius: 8px; cursor: pointer;
+            font-family: var(--font-code); font-size: 0.8rem;
+        }
+
+        @media (max-width: 900px) {
+            .layout-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="reading-progress"><div class="reading-bar"></div></div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="/modules/08-devices.html" class="back-link">← Back to Module 08</a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">V-LAB 08B</span>
+        </nav>
+
+        <header>
+            <span class="meta-badge">Layer 2 Switch Lab</span>
+            <h1>Switch Logic Visualizer</h1>
+            <p style="color: var(--text-muted);">Watch the Switch learn MAC addresses in real-time. Send packets to see how the <strong>CAM Table</strong> prevents unnecessary broadcasts.</p>
+        </header>
+
+        <div class="layout-grid">
+            <!-- CAM TABLE -->
+            <aside class="sidebar">
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                        <span style="margin-left: 10px; font-size: 0.7rem; color: var(--text-muted);">MAC_ADDRESS_TABLE</span>
+                    </div>
+                    <table class="cam-table">
+                        <thead>
+                            <tr><th>MAC ADDRESS</th><th>PORT</th></tr>
+                        </thead>
+                        <tbody id="camBody">
+                            <!-- Entries added dynamically -->
+                            <tr><td colspan="2" style="text-align:center; padding-top:20px; color:var(--text-muted);">Table Empty.</td></tr>
+                        </tbody>
+                    </table>
+                    <div style="margin-top:auto; font-size:0.7rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px;">
+                        * Entries automatically age out in real enterprise switches.
+                    </div>
+                </div>
+            </aside>
+
+            <!-- SIMULATION -->
+            <main>
+                <div class="sim-container">
+                    <div class="status-badge">ENGINE_STATUS: <span id="simStatus">IDLE</span></div>
+                    <div class="scan-line" id="scanLine"></div>
+                    <canvas id="networkCanvas"></canvas>
+                </div>
+
+                <div class="controls">
+                    <button class="btn-send" onclick="sendPacket('A', 'B')">PC-A ➔ PC-B</button>
+                    <button class="btn-send" onclick="sendPacket('B', 'C')">PC-B ➔ PC-C</button>
+                    <button class="btn-send" onclick="sendPacket('C', 'A')">PC-C ➔ PC-A</button>
+                    <button class="btn-clear" onclick="clearTable()">Clear CAM Table</button>
+                </div>
+
+                <div style="margin-top: 30px; padding: 20px; background: rgba(34, 197, 94, 0.05); border: 1px dashed var(--accent); border-radius: var(--radius);">
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">
+                        <strong style="color: var(--accent);">Observation:</strong> The first time you send a packet to a new PC, the switch <strong>floods</strong> all ports (broadcast). Once the destination MAC is learned, it uses <strong>unicast</strong> (direct path).
+                    </p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('networkCanvas');
+        const ctx = canvas.getContext('2d');
+        const scanLine = document.getElementById('scanLine');
+        const statusLabel = document.getElementById('simStatus');
+        const camBody = document.getElementById('camBody');
+
+        let width, height;
+        let packets = [];
+        let camTable = {}; // MAC: Port
+
+        const nodes = {
+            switch: { x: 0.5, y: 0.5, icon: "\uf233", label: "L2 SWITCH", color: "#f59e0b", id: "SW" },
+            A: { x: 0.2, y: 0.3, icon: "\uf108", label: "PC-A", color: "#22c55e", mac: "00:AA:11", port: "Fa0/1" },
+            B: { x: 0.2, y: 0.7, icon: "\uf108", label: "PC-B", color: "#22c55e", mac: "00:BB:22", port: "Fa0/2" },
+            C: { x: 0.8, y: 0.5, icon: "\uf108", label: "PC-C", color: "#22c55e", mac: "00:CC:33", port: "Fa0/3" }
+        };
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = 500;
+            width = canvas.width;
+            height = canvas.height;
+        }
+
+        function updateCamUI() {
+            if (Object.keys(camTable).length === 0) {
+                camBody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding-top:20px; color:var(--text-muted);">Table Empty.</td></tr>';
+                return;
+            }
+            camBody.innerHTML = Object.entries(camTable).map(([mac, port]) => `
+                <tr id="row-${mac.replace(/:/g,'')}"><td>${mac}</td><td>${port}</td></tr>
+            `).join('');
+        }
+
+        function clearTable() {
+            camTable = {};
+            updateCamUI();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Connections
+            ctx.strokeStyle = "#334155"; ctx.lineWidth = 2;
+            ['A', 'B', 'C'].forEach(key => {
+                ctx.beginPath();
+                ctx.moveTo(width * nodes[key].x, height * nodes[key].y);
+                ctx.lineTo(width * nodes.switch.x, height * nodes.switch.y);
+                ctx.stroke();
+            });
+
+            // Draw Nodes
+            Object.values(nodes).forEach(node => {
+                const x = width * node.x, y = height * node.y;
+                ctx.fillStyle = "#0d1117"; ctx.beginPath(); ctx.arc(x, y, 30, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = node.color; ctx.stroke();
+                ctx.fillStyle = node.color; ctx.font = '900 20px "Font Awesome 6 Free"';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(node.icon, x, y);
+                ctx.fillStyle = "#94a3b8"; ctx.font = '10px "JetBrains Mono"'; ctx.fillText(node.label, x, y + 45);
+                if(node.mac) ctx.fillText(node.mac, x, y + 58);
+            });
+
+            // Packets
+            for (let i = packets.length - 1; i >= 0; i--) {
+                const p = packets[i];
+                ctx.fillStyle = p.color; ctx.shadowBlur = 10; ctx.shadowColor = p.color;
+                ctx.beginPath(); ctx.arc(p.currX, p.currY, 6, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+                if (p.update()) packets.splice(i, 1);
+            }
+            requestAnimationFrame(draw);
+        }
+
+        class Packet {
+            constructor(srcKey, destKey) {
+                this.src = nodes[srcKey];
+                this.dest = nodes[destKey];
+                this.stage = 0; // 0:ToSwitch, 1:Learning/Processing, 2:Forwarding
+                this.prog = 0;
+                this.color = "#22c55e";
+                this.currX = width * this.src.x;
+                this.currY = height * this.src.y;
+                this.clones = []; // Used for flooding
+            }
+
+            update() {
+                if (this.stage === 0) { // To Switch
+                    this.prog += 0.02;
+                    this.currX = (width * this.src.x) + (width * nodes.switch.x - width * this.src.x) * this.prog;
+                    this.currY = (height * this.src.y) + (height * nodes.switch.y - height * this.src.y) * this.prog;
+                    if (this.prog >= 1) { this.stage = 1; this.prog = 0; this.process(); }
+                } 
+                else if (this.stage === 2) { // Forwarding
+                    this.prog += 0.02;
+                    if (this.clones.length > 0) {
+                        this.clones.forEach(c => {
+                            c.currX = (width * nodes.switch.x) + (width * c.target.x - width * nodes.switch.x) * this.prog;
+                            c.currY = (height * nodes.switch.y) + (height * c.target.y - height * nodes.switch.y) * this.prog;
+                            // Draw the clone
+                            ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(c.currX, c.currY, 6, 0, Math.PI * 2); ctx.fill();
+                        });
+                    } else {
+                        this.currX = (width * nodes.switch.x) + (width * this.dest.x - width * nodes.switch.x) * this.prog;
+                        this.currY = (height * nodes.switch.y) + (height * this.dest.y - height * nodes.switch.y) * this.prog;
+                    }
+
+                    if (this.prog >= 1) {
+                        statusLabel.innerText = "IDLE";
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            process() {
+                statusLabel.innerText = "LEARNING";
+                scanLine.style.display = "block";
+                
+                // 1. Learn Source
+                camTable[this.src.mac] = this.src.port;
+                updateCamUI();
+                document.getElementById(`row-${this.src.mac.replace(/:/g,'')}`).classList.add('highlight-row');
+
+                setTimeout(() => {
+                    statusLabel.innerText = "LOOKUP";
+                    // 2. Check Destination
+                    if (camTable[this.dest.mac]) {
+                        statusLabel.innerText = "UNICAST";
+                        this.clones = []; // Targeted
+                    } else {
+                        statusLabel.innerText = "FLOODING";
+                        this.color = "#ef4444";
+                        // Flood to all except source
+                        this.clones = Object.keys(nodes)
+                            .filter(k => k !== 'switch' && k !== Object.keys(nodes).find(key => nodes[key] === this.src))
+                            .map(k => ({ target: nodes[k], currX: 0, currY: 0 }));
+                    }
+                    scanLine.style.display = "none";
+                    this.stage = 2;
+                }, 1200);
+            }
+        }
+
+        function sendPacket(s, d) {
+            if (packets.length > 0) return;
+            packets.push(new Packet(s, d));
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

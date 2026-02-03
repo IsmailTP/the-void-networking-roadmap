@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO METADATA -->
+    <meta name="description"
+        content="Master essential Linux networking commands: ip, ping, ss, nmap, and tcpdump. Learn how to diagnose connectivity issues and analyze traffic.">
+    <meta name="keywords"
+        content="Linux Networking, ip command, ping, traceroute, nmap basics, tcpdump, cybersecurity networking, linux troubleshooting">
+    <meta name="author" content="The Void">
+
+    <title>The Void | Linux Networking</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- VARIABLES --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: radial-gradient(#1e293b 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 1000;
+        }
+
+        .reading-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--purple));
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .top-nav {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        header {
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--text-main);
+        }
+
+        .module-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .meta-badge.difficulty {
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        /* --- LAYOUT GRID --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 50px;
+            position: relative;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+
+        .toc {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(5px);
+        }
+
+        .toc h4 {
+            margin-bottom: 15px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .toc a {
+            display: block;
+            padding: 8px 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-decoration: none;
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            margin-left: -10px;
+            transition: all 0.2s;
+        }
+
+        .toc a:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .toc a.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        /* --- CONTENT STYLES --- */
+        main h2 {
+            font-size: 1.8rem;
+            margin: 0 0 15px;
+            color: var(--text-main);
+            scroll-margin-top: 100px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+        }
+
+        .section-block {
+            margin-bottom: 60px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media(max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .info-card h4 {
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        /* Console / Code Block Styling */
+        .console-block {
+            background: #0d1117;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        .console-cmd {
+            color: var(--accent);
+            display: block;
+            margin-bottom: 8px;
+        }
+        .console-cmd::before {
+            content: "$ ";
+            color: var(--text-muted);
+            opacity: 0.5;
+        }
+        .console-out {
+            color: #e2e8f0;
+            white-space: pre-wrap;
+        }
+
+        .simple-flow {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: #0d1117;
+            border-radius: 8px;
+            margin: 20px 0;
+            justify-content: center;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .flow-node {
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 4px;
+            background: var(--bg-card);
+        }
+
+        .flow-arrow {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .security-mindset {
+            background: rgba(239, 68, 68, 0.05);
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .quick-check {
+            background: rgba(34, 197, 94, 0.05);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            margin-top: 20px;
+        }
+
+        .btn-sim {
+            display: block;
+            background: var(--bg-card);
+            border: 1px dashed var(--accent);
+            color: var(--accent);
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            text-decoration: none;
+            margin: 20px 0;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-sim:hover {
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        ul.simple-list {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        ul.simple-list li {
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        .module-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-next {
+            background: var(--accent);
+            color: #000;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-next:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        @media(max-width: 900px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="reading-progress">
+        <div class="reading-bar" id="reading-bar"></div>
+    </div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="../index.html" class="back-link">← Back to Roadmap</a>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 09</span>
+        </nav>
+
+        <header>
+            <div class="module-meta">
+                <span class="meta-badge difficulty">Intermediate</span>
+                <span class="meta-badge">⏱ 60-75 Minutes</span>
+                <span class="meta-badge">Prereq: Module 08</span>
+            </div>
+            <h1>Linux Networking</h1>
+            <p style="max-width: 700px;">Move from theory to practice. Learn to inspect connections, scan ports, trace packets, and troubleshoot broken networks using the Linux command line.</p>
+        </header>
+
+        <div class="layout-grid">
+            <aside class="sidebar">
+                <div class="toc">
+                    <h4>On this page</h4>
+                    <a href="#interfaces">1. Interfaces (ip a)</a>
+                    <a href="#routing">2. Routing (ip route)</a>
+                    <a href="#ping">3. Connectivity (Ping)</a>
+                    <a href="#dns">4. DNS (dig)</a>
+                    <a href="#ports">5. Ports (ss/netstat)</a>
+                    <a href="#trace">6. Tracing Paths</a>
+                    <a href="#tcpdump">7. Packet Capture</a>
+                    <a href="#nmap">8. Nmap Essentials</a>
+                    <a href="#workflow">9. Troubleshooting Flow</a>
+                    <a href="#recap">📌 Recap</a>
+                </div>
+            </aside>
+
+            <main>
+                <!-- 1. INTERFACES -->
+                <section id="interfaces" class="section-block">
+                    <h2>1. Understanding Network Interfaces</h2>
+                    <p>Before you can attack or defend a network, you need to know who <em>you</em> are on that network. Every device has network interfaces (virtual or physical cards).</p>
+
+                    <div class="console-block">
+                        <span class="console-cmd">ip a</span>
+                        <span class="console-out">1: lo: &lt;LOOPBACK,UP&gt; inet 127.0.0.1/8
+2: eth0: &lt;BROADCAST,UP&gt; inet 192.168.1.55/24 brd 192.168.1.255</span>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>eth0 / wlan0</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">Your physical connection. <strong>eth0</strong> is usually wired, <strong>wlan0</strong> is Wi-Fi.</p>
+                        </div>
+                        <div class="info-card">
+                            <h4>lo (Loopback)</h4>
+                            <p style="margin-bottom:0; font-size:0.95rem;">The "Home" address (127.0.0.1). Traffic sent here stays inside your computer.</p>
+                        </div>
+                    </div>
+
+                    <div class="simple-flow">
+                        <div class="flow-node">Your App</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">OS Kernel</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node" style="border-color: var(--accent);">Interface (eth0)</div>
+                        <div class="flow-arrow">⟶</div>
+                        <div class="flow-node">Router</div>
+                    </div>
+
+                    <div class="security-mindset">
+                        <h4 style="margin-bottom:5px; color:#f87171;">🛡️ Security Mindset</h4>
+                        <p style="margin-bottom:0; font-size:0.9rem;">Attackers first check <code>ip a</code> to see what subnet they are on. If they see multiple interfaces, the machine might be a bridge to another network.</p>
+                    </div>
+                </section>
+
+                <!-- 2. ROUTING -->
+                <section id="routing" class="section-block">
+                    <h2>2. IP Address & Routing</h2>
+                    <p>Having an IP is useless if your computer doesn't know where to send traffic. The <strong>Routing Table</strong> is the map your computer follows.</p>
+
+                    <div class="console-block">
+                        <span class="console-cmd">ip route</span>
+                        <span class="console-out">default via 192.168.1.1 dev eth0
+192.168.1.0/24 dev eth0 proto kernel scope link src 192.168.1.55</span>
+                    </div>
+
+                    <ul class="simple-list">
+                        <li><strong>Default via 192.168.1.1:</strong> This is your <strong>Gateway</strong> (usually your Router). If your computer doesn't know where an IP is, it sends it here.</li>
+                        <li><strong>192.168.1.0/24:</strong> This says "computers with these IPs are right next to me (Local LAN)."</li>
+                    </ul>
+
+                    <a href="/sim/ip_config.html" class="btn-sim">Launch IP Config Simulator</a>
+
+                    <div class="quick-check">
+                        <h4 style="margin-bottom:10px; color: var(--accent);">✅ Quick Check</h4>
+                        <ul class="simple-list" style="margin-bottom:0;">
+                            <li>What command shows the routing table? (Answer: <code>ip route</code> or <code>route -n</code>)</li>
+                            <li>If the "default" line is missing, can you reach the internet? (Answer: No)</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- 3. CONNECTIVITY -->
+                <section id="ping" class="section-block">
+                    <h2>3. Checking Connectivity (Ping)</h2>
+                    <p>The "Hello World" of networking. Ping sends an ICMP Echo Request. If the other computer is alive and willing, it sends a Reply.</p>
+
+                    <div class="console-block">
+                        <span class="console-cmd">ping -c 3 8.8.8.8</span>
+                        <span class="console-out">64 bytes from 8.8.8.8: icmp_seq=1 ttl=115 time=14.2 ms
+64 bytes from 8.8.8.8: icmp_seq=2 ttl=115 time=12.1 ms</span>
+                    </div>
+
+                    <div class="info-card">
+                        <h4>Troubleshooting Logic</h4>
+                        <ul class="simple-list" style="margin-bottom:0;">
+                            <li><strong>Ping 127.0.0.1:</strong> Is my network card working?</li>
+                            <li><strong>Ping 192.168.1.1 (Gateway):</strong> Am I connected to the router?</li>
+                            <li><strong>Ping 8.8.8.8 (Google):</strong> Do I have internet?</li>
+                            <li><strong>Ping google.com:</strong> Is my DNS working?</li>
+                        </ul>
+                    </div>
+
+                    <div class="security-mindset">
+                        <h4 style="margin-bottom:5px; color:#f87171;">🛡️ Security Mindset</h4>
+                        <p style="margin-bottom:0; font-size:0.9rem;">Firewalls often block ICMP (Ping) to hide servers. Just because a server doesn't ping, doesn't mean it's offline.</p>
+                    </div>
+                </section>
+
+                <!-- 4. DNS -->
+                <section id="dns" class="section-block">
+                    <h2>4. DNS Investigation</h2>
+                    <p>Computers speak numbers (IPs); humans speak names (google.com). Tools like <code>nslookup</code> and <code>dig</code> ask the DNS server for the IP address.</p>
+
+                    <div class="console-block">
+                        <span class="console-cmd">dig google.com</span>
+                        <span class="console-out">;; ANSWER SECTION:
+google.com.     183     IN      A       142.250.190.46</span>
+                    </div>
+
+                    <p><strong>Common Record Types:</strong></p>
+                    <ul class="simple-list">
+                        <li><strong>A Record:</strong> The IPv4 address.</li>
+                        <li><strong>MX Record:</strong> The Mail server (where emails go).</li>
+                        <li><strong>AAAA Record:</strong> The IPv6 address.</li>
+                    </ul>
+
+                    <p>During a security assessment, checking DNS records (Reconnaissance) is often the very first step to map out a target's infrastructure.</p>
+                </section>
+
+                <!-- 5. PORTS -->
+                <section id="ports" class="section-block">
+                    <h2>5. Port & Connection Analysis</h2>
+                    <p>If the IP is the house address, ports are the doors. You need to know which doors are open and what services are listening.</p>
+                    <p>Use <code>ss</code> (Socket Statistics) or the legacy <code>netstat</code>.</p>
+
+                    <div class="console-block">
+                        <span class="console-cmd">ss -tuln</span>
+                        <span class="console-out">Netid  State   Local Address:Port
+tcp    LISTEN  0.0.0.0:80        (Web Server)
+tcp    LISTEN  0.0.0.0:22        (SSH)</span>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <h4>-tuln Flags</h4>
+                            <p style="margin-bottom:0; font-size:0.9rem;">
+                                <strong>t</strong>: TCP<br>
+                                <strong>u</strong>: UDP<br>
+                                <strong>l</strong>: Listening sockets only<br>
+                                <strong>n</strong>: Numeric (Show 80, not 'http')
+                            </p>
+                        </div>
+                        <div class="info-card">
+                            <h4>Why it matters</h4>
+                            <p style="margin-bottom:0; font-size:0.9rem;">If you see a port listening that you didn't install (like port 6667), you might have malware.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. TRACING -->
+                <section id="trace" class="section-block">
+                    <h2>6. Tracing the Path</h2>
+                    <p>When you connect to a server, your packet hops through many routers. <code>traceroute</code> shows you every hop along the way.</p>
+
+                    <div class="console-block">
+                        <span class="console-cmd">traceroute google.com</span>
+                        <span class="console-out">1  192.168.1.1 (Home Router)  2.1 ms
+2  10.50.2.1 (ISP Hub)        15.4 ms
+...
+12 142.250.190.46 (Google)    25.1 ms</span>
+                    </div>
+
+                    <p>It works by manipulating the <strong>TTL (Time To Live)</strong> of a packet. It intentionally causes the packet to "die" at hop 1, then hop 2, then hop 3, forcing each router to send back an error message identifying itself.</p>
+                </section>
+
+                <!-- 7. PACKET CAPTURE -->
+                <section id="tcpdump" class="section-block">
+                    <h2>7. Packet Capture (Traffic Inspection)</h2>
+                    <p>Sometimes commands tell you everything looks fine, but it still doesn't work. This is when you use <code>tcpdump</code> to look at the actual raw data flying through the wire.</p>
+
+                    <div class="console-block">
+                        <span class="console-cmd">sudo tcpdump -i eth0 port 80</span>
+                        <span class="console-out">IP 192.168.1.55.5342 > 142.250.1.1.80: Flags [S], seq 12345...
+IP 142.250.1.1.80 > 192.168.1.55.5342: Flags [S.], seq 98765...</span>
+                    </div>
+
+                    <div class="security-mindset">
+                        <h4 style="margin-bottom:5px; color:#f87171;">🛡️ Security Mindset</h4>
+                        <p style="margin-bottom:0; font-size:0.9rem;">This is the "X-Ray" of networking. Security analysts use this to see exactly what malware is sending out, or why a firewall is dropping a connection.</p>
+                    </div>
+                </section>
+
+                <!-- 8. NMAP -->
+                <section id="nmap" class="section-block">
+                    <h2>8. Nmap Essentials</h2>
+                    <p>While <code>ss</code> checks <em>your</em> ports, <code>nmap</code> checks <em>remote</em> ports. It is the industry standard for network mapping and scanning.</p>
+
+                    <div class="console-block">
+                        <span class="console-cmd">nmap -A 192.168.1.105</span>
+                        <span class="console-out">PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.2
+80/tcp open  http    Apache httpd 2.4</span>
+                    </div>
+
+                    <div class="info-card" style="border-color: var(--warning);">
+                        <h4 style="color: var(--warning);">⚠️ Warning</h4>
+                        <p style="margin-bottom:0; font-size:0.9rem;">Scanning networks you do not own is illegal in many jurisdictions. Only scan your own labs or networks where you have explicit permission.</p>
+                    </div>
+
+                    <a href="/sim/nmap_basics.html" class="btn-sim" style="border-color: var(--purple); color: var(--purple);">Launch Nmap Simulator</a>
+                </section>
+
+                <!-- 9. WORKFLOW -->
+                <section id="workflow" class="section-block">
+                    <h2>9. Real Troubleshooting Flow</h2>
+                    <p>Internet down? Don't guess. Follow the data path.</p>
+
+                    <div class="simple-flow" style="flex-direction: column; align-items: flex-start;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <span class="flow-node">1. ip a</span>
+                            <span>Do I have an IP address? (If no: DHCP issue)</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <span class="flow-node">2. ip route</span>
+                            <span>Do I have a default gateway?</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <span class="flow-node">3. ping gateway</span>
+                            <span>Can I talk to the router? (If no: Layer 2/Switch issue)</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <span class="flow-node">4. ping 8.8.8.8</span>
+                            <span>Can I reach the internet? (If no: ISP/Router issue)</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="flow-node">5. ping google.com</span>
+                            <span>Does the name resolve? (If no: DNS issue)</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- RECAP -->
+                <section id="recap" style="border-bottom: none;">
+                    <div
+                        style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3>📌 Recap</h3>
+                        <ul class="simple-list" style="color: var(--text-main);">
+                            <li><strong>ip a:</strong> Show interfaces and IP.</li>
+                            <li><strong>ip route:</strong> Show gateway and routing table.</li>
+                            <li><strong>ping:</strong> Test connectivity (ICMP).</li>
+                            <li><strong>ss -tuln:</strong> Check local listening ports.</li>
+                            <li><strong>dig / nslookup:</strong> Query DNS records.</li>
+                            <li><strong>tcpdump:</strong> Capture raw packets.</li>
+                            <li><strong>nmap:</strong> Scan remote systems.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- FOOTER NAV -->
+                <div class="module-footer">
+                    <a href="08-devices.html" class="back-link">← Previous Module</a>
+                    <div>
+                        <div
+                            style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">
+                            Next: Web Tech</div>
+                        <a href="10-web-basics.html" class="btn-next">Next Module →</a>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Reading Progress
+        window.addEventListener("scroll", () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            document.getElementById("reading-bar").style.width = progress + "%";
+        });
+
+        // TOC Active Link
+        const sections = document.querySelectorAll("main section");
+        const tocLinks = document.querySelectorAll(".toc a");
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    tocLinks.forEach(link => {
+                        link.classList.remove("active");
+                        if (link.getAttribute("href") === "#" + entry.target.id) {
+                            link.classList.add("active");
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(section => observer.observe(section));
+
+        // Progress Tracking
+        window.onload = function () {
+            const MODULE_ID = 9;
+            let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
+            if (!savedProgress.includes(MODULE_ID)) {
+                savedProgress.push(MODULE_ID);
+                localStorage.setItem('voidNetProgress', JSON.stringify(savedProgress));
+            }
+        };
+    </script>
+</body>
+
+</html>
