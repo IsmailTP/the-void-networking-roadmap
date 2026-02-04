@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | Switch MAC Table Simulator</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CORE THEME (Matches Module) --- */
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;        
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* --- HEADER --- */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { font-family: var(--font-head); font-size: 1.8rem; }
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        /* --- MAIN GRID --- */
+        .sim-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Visuals take more space */
+            gap: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .sim-grid { grid-template-columns: 1fr; }
+        }
+
+        /* --- VISUALIZATION AREA (CANVAS) --- */
+        .vis-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            position: relative;
+            min-height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.3);
+        }
+
+        /* The Switch */
+        .switch-device {
+            width: 160px;
+            height: 100px;
+            background: #334155;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            padding: 10px;
+            gap: 10px;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .switch-label {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--font-code);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        .port {
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-code);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            position: relative;
+        }
+        .port.active { border-color: var(--accent); box-shadow: 0 0 8px var(--accent-glow); color: var(--accent); }
+
+        /* Hosts */
+        .host {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .host-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+        .host.sending .host-icon { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
+        .host.receiving .host-icon { border-color: var(--purple); box-shadow: 0 0 15px rgba(139, 92, 246, 0.4); }
+        
+        .host-info { text-align: center; font-family: var(--font-code); font-size: 0.7rem; color: var(--text-muted); line-height: 1.2; }
+        .host-mac { font-size: 0.6rem; opacity: 0.7; }
+
+        /* Positioning Hosts */
+        #host-A { top: 20px; left: 20px; }
+        #host-B { top: 20px; right: 20px; }
+        #host-C { bottom: 20px; left: 20px; }
+        #host-D { bottom: 20px; right: 20px; }
+
+        /* Cables (SVG Lines) */
+        .cables-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+        .cable { stroke: var(--border); stroke-width: 2; }
+
+        /* Packets */
+        .packet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent);
+            z-index: 20;
+            display: none;
+            transition: top 1s linear, left 1s linear, opacity 0.3s;
+        }
+        .packet.flood { background: var(--warning); box-shadow: 0 0 10px var(--warning); }
+        .packet.drop { background: var(--danger); }
+
+        /* --- CONTROLS & DATA PANEL --- */
+        .data-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: var(--radius);
+        }
+        .control-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        select, button {
+            background: #0f172a;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 6px;
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+        }
+        select { flex: 1; cursor: pointer; }
+        button { cursor: pointer; transition: all 0.2s; font-weight: 600; }
+        
+        .btn-primary { background: var(--accent); color: #000; border: none; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: var(--danger); width: 100%; }
+        .btn-danger:hover { background: var(--danger); color: white; }
+
+        /* MAC Table */
+        .mac-table-container {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .mac-table-header {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+        }
+        .mac-table-body {
+            min-height: 150px;
+        }
+        .mac-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            padding: 8px 10px;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            animation: fadeIn 0.3s ease;
+        }
+        .mac-row.new { background: rgba(34, 197, 94, 0.1); color: var(--accent); }
+        
+        /* Logs */
+        .log-box {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .log-entry { opacity: 0.8; }
+        .log-entry.step { color: var(--text-muted); margin-top: 5px; border-top: 1px dashed #333; padding-top: 5px; }
+        .log-entry.action-learn { color: var(--accent); }
+        .log-entry.action-flood { color: var(--warning); }
+        .log-entry.action-fwd { color: var(--purple); }
+
+        /* Animation Keyframes */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1>Switch MAC Table Simulator</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Observe how a switch learns MAC addresses and makes forwarding decisions.</p>
+            </div>
+            <a href="../modules/05-mac.html" class="back-link">← Back to Module</a>
+        </header>
+
+        <div class="sim-grid">
+            
+            <!-- LEFT: VISUALIZATION -->
+            <div class="vis-panel" id="visPanel">
+                <div class="switch-label">Layer 2 Switch</div>
+                
+                <!-- The Switch -->
+                <div class="switch-device" id="switchUnit">
+                    <div class="port" id="port-1">Port 1</div>
+                    <div class="port" id="port-2">Port 2</div>
+                    <div class="port" id="port-3">Port 3</div>
+                    <div class="port" id="port-4">Port 4</div>
+                </div>
+
+                <!-- Hosts -->
+                <div class="host" id="host-A">
+                    <div class="host-icon">💻</div>
+                    <div class="host-info">PC-A<br><span class="host-mac">AA:AA:AA</span></div>
+                </div>
+                <div class="host" id="host-B">
+                    <div class="host-icon">💻</div>
+                    <div class="host-info">PC-B<br><span class="host-mac">BB:BB:BB</span></div>
+                </div>
+                <div class="host" id="host-C">
+                    <div class="host-icon">🖨️</div>
+                    <div class="host-info">Printer<br><span class="host-mac">CC:CC:CC</span></div>
+                </div>
+                <div class="host" id="host-D">
+                    <div class="host-icon">🖥️</div>
+                    <div class="host-info">Server<br><span class="host-mac">DD:DD:DD</span></div>
+                </div>
+
+                <!-- Cables drawn via JS -->
+                <svg class="cables-layer" id="cablesSvg">
+                    <!-- Lines will be injected here -->
+                </svg>
+
+                <!-- Dynamic Packet Elements -->
+                <div id="packetPool"></div>
+            </div>
+
+            <!-- RIGHT: CONTROLS & LOGS -->
+            <div class="data-panel">
+                
+                <!-- Controls -->
+                <div class="control-box">
+                    <div class="control-row">
+                        <select id="sourceSelect">
+                            <option value="A">Source: PC-A (AA:AA..)</option>
+                            <option value="B">Source: PC-B (BB:BB..)</option>
+                            <option value="C">Source: Printer (CC:CC..)</option>
+                            <option value="D">Source: Server (DD:DD..)</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <select id="destSelect">
+                            <option value="A">Dest: PC-A</option>
+                            <option value="B" selected>Dest: PC-B</option>
+                            <option value="C">Dest: Printer</option>
+                            <option value="D">Dest: Server</option>
+                            <option value="UNKNOWN">Dest: Unknown (Random MAC)</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" style="width: 100%;" onclick="startSimulation()">Send Frame</button>
+                    <div style="height: 10px;"></div>
+                    <button class="btn-danger" onclick="clearTable()">Clear MAC Table</button>
+                </div>
+
+                <!-- MAC Table Display -->
+                <div>
+                    <h4 style="margin-bottom: 10px; font-weight: 500;">CAM Table (Memory)</h4>
+                    <div class="mac-table-container">
+                        <div class="mac-table-header">
+                            <span>Port</span>
+                            <span>MAC Address</span>
+                            <span>Type</span>
+                        </div>
+                        <div class="mac-table-body" id="tableBody">
+                            <!-- Rows go here -->
+                            <div style="padding: 20px; text-align: center; color: #444; font-size: 0.8rem;">Table Empty</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs -->
+                <div>
+                    <h4 style="margin-bottom: 10px; font-weight: 500;">Switch Logic Log</h4>
+                    <div class="log-box" id="logBox">
+                        <div class="log-entry">> System Ready.</div>
+                        <div class="log-entry">> Waiting for frames...</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const devices = {
+            'A': { id: 'A', mac: 'AA:AA:AA:AA:AA:AA', port: 1, el: document.getElementById('host-A') },
+            'B': { id: 'B', mac: 'BB:BB:BB:BB:BB:BB', port: 2, el: document.getElementById('host-B') },
+            'C': { id: 'C', mac: 'CC:CC:CC:CC:CC:CC', port: 3, el: document.getElementById('host-C') },
+            'D': { id: 'D', mac: 'DD:DD:DD:DD:DD:DD', port: 4, el: document.getElementById('host-D') }
+        };
+
+        const switchPorts = {
+            1: document.getElementById('port-1'),
+            2: document.getElementById('port-2'),
+            3: document.getElementById('port-3'),
+            4: document.getElementById('port-4')
+        };
+
+        const switchUnit = document.getElementById('switchUnit');
+        let macTable = {}; // Key: MAC, Value: Port
+        let isAnimating = false;
+
+        // --- INITIALIZATION ---
+        function initLines() {
+            const svg = document.getElementById('cablesSvg');
+            svg.innerHTML = '';
+            
+            const switchRect = switchUnit.getBoundingClientRect();
+            const containerRect = document.getElementById('visPanel').getBoundingClientRect();
+            
+            // Center of Switch relative to panel
+            const switchCX = switchRect.left + switchRect.width/2 - containerRect.left;
+            const switchCY = switchRect.top + switchRect.height/2 - containerRect.top;
+
+            Object.values(devices).forEach(dev => {
+                const devRect = dev.el.getBoundingClientRect();
+                const devCX = devRect.left + devRect.width/2 - containerRect.left;
+                const devCY = devRect.top + devRect.height/2 - containerRect.top;
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', devCX);
+                line.setAttribute('y1', devCY);
+                line.setAttribute('x2', switchCX);
+                line.setAttribute('y2', switchCY);
+                line.classList.add('cable');
+                svg.appendChild(line);
+            });
+        }
+
+        window.addEventListener('resize', initLines);
+        window.addEventListener('load', initLines);
+
+        // --- CORE LOGIC ---
+
+        function startSimulation() {
+            if (isAnimating) return;
+            
+            const srcId = document.getElementById('sourceSelect').value;
+            const destId = document.getElementById('destSelect').value;
+            
+            if (srcId === destId) {
+                log("Error: Source and Destination cannot be the same.", "error");
+                return;
+            }
+
+            isAnimating = true;
+            disableControls(true);
+
+            const srcDev = devices[srcId];
+            let destMac = (destId === 'UNKNOWN') ? '99:99:99:99:99:99' : devices[destId].mac;
+
+            log(`step`, `---------------------------`);
+            log(`info`, `Frame Received on PORT ${srcDev.port}`);
+            log(`info`, `Source: ${srcDev.mac} | Dest: ${destMac}`);
+
+            // 1. VISUAL: Packet moves Source -> Switch
+            animatePacketToSwitch(srcDev, () => {
+                
+                // 2. LOGIC: Learning Process
+                processLearning(srcDev);
+
+                // 3. LOGIC: Forwarding Decision
+                setTimeout(() => {
+                    processForwarding(srcDev, destId, destMac);
+                }, 500);
+            });
+        }
+
+        function processLearning(srcDev) {
+            const port = srcDev.port;
+            const mac = srcDev.mac;
+
+            if (macTable[mac] === port) {
+                log('info', `Source MAC ${mac.substring(0,8)}... already known on Port ${port}. Refreshing timer.`);
+                highlightRow(mac);
+            } else {
+                if (macTable[mac]) {
+                    log('action-learn', `MAC Moved! Updating ${mac.substring(0,8)}... to Port ${port}.`);
+                } else {
+                    log('action-learn', `LEARNING: Added ${mac.substring(0,8)}... to MAC Table on Port ${port}.`);
+                }
+                macTable[mac] = port;
+                updateTableUI();
+            }
+            highlightPort(port);
+        }
+
+        function processForwarding(srcDev, destId, destMac) {
+            // Check if Dest MAC is in table
+            const knownPort = macTable[destMac];
+
+            if (knownPort) {
+                // UNICAST (Known)
+                log('action-fwd', `LOOKUP: Dest MAC found on Port ${knownPort}.`);
+                log('action-fwd', `FORWARDING: Unicast frame to Port ${knownPort}.`);
+                
+                animatePacketFromSwitch([devices[getDeviceKeyByPort(knownPort)]], 'unicast', () => {
+                    finishSimulation();
+                });
+            } else {
+                // FLOOD (Unknown)
+                log('action-flood', `LOOKUP: Dest MAC ${destMac.substring(0,8)}... NOT found in table.`);
+                log('action-flood', `FLOODING: Sending to all ports except Source (Port ${srcDev.port}).`);
+                
+                // Get all devices except source
+                const targets = Object.values(devices).filter(d => d.id !== srcDev.id);
+                
+                animatePacketFromSwitch(targets, 'flood', () => {
+                    finishSimulation();
+                });
+            }
+        }
+
+        // --- ANIMATION HELPERS ---
+
+        function animatePacketToSwitch(srcDev, callback) {
+            const packet = createPacket();
+            const startPos = getCenter(srcDev.el);
+            const endPos = getCenter(switchUnit);
+
+            packet.style.top = startPos.y + 'px';
+            packet.style.left = startPos.x + 'px';
+            packet.style.display = 'block';
+
+            // Trigger animation
+            setTimeout(() => {
+                packet.style.top = endPos.y + 'px';
+                packet.style.left = endPos.x + 'px';
+            }, 50);
+
+            setTimeout(() => {
+                packet.remove();
+                callback();
+            }, 1050);
+        }
+
+        function animatePacketFromSwitch(targetDevices, type, callback) {
+            const startPos = getCenter(switchUnit);
+            let completed = 0;
+
+            targetDevices.forEach(dev => {
+                const packet = createPacket();
+                if (type === 'flood') packet.classList.add('flood');
+                
+                packet.style.top = startPos.y + 'px';
+                packet.style.left = startPos.x + 'px';
+                packet.style.display = 'block';
+
+                const endPos = getCenter(dev.el);
+
+                setTimeout(() => {
+                    packet.style.top = endPos.y + 'px';
+                    packet.style.left = endPos.x + 'px';
+                }, 50);
+
+                setTimeout(() => {
+                    flashDevice(dev.el, type);
+                    packet.remove();
+                    completed++;
+                    if (completed === targetDevices.length) callback();
+                }, 1050);
+            });
+        }
+
+        function createPacket() {
+            const p = document.createElement('div');
+            p.classList.add('packet');
+            document.getElementById('visPanel').appendChild(p);
+            return p;
+        }
+
+        function getCenter(element) {
+            const rect = element.getBoundingClientRect();
+            const container = document.getElementById('visPanel').getBoundingClientRect();
+            return {
+                x: rect.left + rect.width/2 - container.left - 6, // -6 is half packet size
+                y: rect.top + rect.height/2 - container.top - 6
+            };
+        }
+
+        function flashDevice(el, type) {
+            el.classList.add('receiving');
+            setTimeout(() => el.classList.remove('receiving'), 500);
+        }
+
+        function highlightPort(portNum) {
+            const p = switchPorts[portNum];
+            p.classList.add('active');
+            setTimeout(() => p.classList.remove('active'), 1000);
+        }
+
+        // --- UI UPDATES ---
+
+        function updateTableUI() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            const entries = Object.entries(macTable);
+            if (entries.length === 0) {
+                tbody.innerHTML = '<div style="padding: 20px; text-align: center; color: #444; font-size: 0.8rem;">Table Empty</div>';
+                return;
+            }
+
+            entries.forEach(([mac, port]) => {
+                const row = document.createElement('div');
+                row.className = 'mac-row new';
+                row.id = `row-${mac}`;
+                row.innerHTML = `
+                    <span>${port}</span>
+                    <span>${mac}</span>
+                    <span style="color:var(--text-muted)">Dynamic</span>
+                `;
+                tbody.appendChild(row);
+                setTimeout(() => row.classList.remove('new'), 1000);
+            });
+        }
+
+        function highlightRow(mac) {
+            const row = document.getElementById(`row-${mac}`);
+            if (row) {
+                row.style.background = 'rgba(255, 255, 255, 0.1)';
+                setTimeout(() => row.style.background = 'transparent', 500);
+            }
+        }
+
+        function clearTable() {
+            macTable = {};
+            updateTableUI();
+            log('info', 'MAC Table Cleared.');
+        }
+
+        function log(type, msg) {
+            const box = document.getElementById('logBox');
+            const entry = document.createElement('div');
+            entry.classList.add('log-entry');
+            entry.classList.add(type);
+            
+            // Timestamp
+            const now = new Date();
+            const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+            
+            entry.innerText = `[${time}] ${msg}`;
+            box.appendChild(entry);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function finishSimulation() {
+            isAnimating = false;
+            disableControls(false);
+        }
+
+        function disableControls(disabled) {
+            document.getElementById('sourceSelect').disabled = disabled;
+            document.getElementById('destSelect').disabled = disabled;
+            document.querySelector('.btn-primary').disabled = disabled;
+        }
+
+        function getDeviceKeyByPort(port) {
+            return Object.keys(devices).find(key => devices[key].port === port);
+        }
+
+    </script>
+</body>
+</html>
