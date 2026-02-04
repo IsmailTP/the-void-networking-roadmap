@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARP Protocol | Interactive Simulator</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- THEME CONFIGURATION --- */
+        :root {
+            --bg-deep: #050511;
+            --bg-panel: rgba(20, 24, 39, 0.7);
+            --bg-panel-border: rgba(255, 255, 255, 0.1);
+            
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            
+            --color-arp-req: #fbbf24; /* Amber */
+            --color-arp-rep: #22d3ee; /* Cyan */
+            --color-icmp: #c084fc;    /* Purple */
+            --color-success: #4ade80; /* Green */
+            
+            --neon-glow: 0 0 10px rgba(34, 211, 238, 0.5);
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-deep);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.15), transparent 25%);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 20px 30px;
+            background: rgba(5, 5, 17, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--bg-panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .logo {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #22d3ee, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls-top {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        input[type=range] {
+            accent-color: var(--color-arp-rep);
+            cursor: pointer;
+        }
+
+        /* --- MAIN LAYOUT --- */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 320px 1fr 320px;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 80px);
+            max-height: 1080px;
+        }
+
+        /* --- SIDEBARS (TABLES) --- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--bg-panel-border);
+            border-radius: 16px;
+            padding: 15px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--bg-panel-border);
+            padding-bottom: 8px;
+        }
+
+        .panel-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* DATA TABLES */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--font-code);
+            font-size: 0.75rem;
+        }
+        
+        .data-table th {
+            text-align: left;
+            color: var(--color-arp-rep);
+            padding: 4px;
+            font-weight: normal;
+        }
+        
+        .data-table td {
+            padding: 6px 4px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            color: var(--text-primary);
+        }
+
+        .empty-state {
+            color: var(--text-secondary);
+            font-style: italic;
+            text-align: center;
+            padding: 10px;
+        }
+
+        /* --- VISUALIZER CENTER --- */
+        .viz-area {
+            position: relative;
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+            border: 1px solid var(--bg-panel-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Animated Grid Background */
+        .viz-bg {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            perspective: 500px;
+            z-index: 0;
+            animation: panGrid 20s linear infinite;
+        }
+
+        @keyframes panGrid {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(40px); }
+        }
+
+        /* Topology Positioning */
+        .topology {
+            flex: 1;
+            position: relative;
+            z-index: 10;
+        }
+
+        .device {
+            position: absolute;
+            width: 140px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .device.pulse {
+            border-color: var(--color-success);
+            box-shadow: 0 0 25px rgba(74, 222, 128, 0.4);
+            transform: scale(1.05);
+        }
+
+        .dev-icon { font-size: 2rem; }
+        .dev-name { font-weight: 700; font-size: 0.9rem; }
+        .dev-ip { color: var(--color-arp-rep); font-family: var(--font-code); font-size: 0.75rem; }
+        .dev-mac { color: var(--text-secondary); font-family: var(--font-code); font-size: 0.65rem; }
+
+        /* Specific Device Positions */
+        #node-A { top: 40px; left: 40px; }
+        #node-B { bottom: 40px; left: 40px; }
+        #node-C { bottom: 40px; right: 40px; }
+        
+        #switch { 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            width: 110px; height: 110px;
+            border-radius: 50%;
+            border: 2px solid var(--text-secondary);
+            justify-content: center;
+            z-index: 5;
+            background: #0f172a;
+        }
+
+        /* Cables */
+        .cable-svg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .cable-line {
+            stroke: #334155;
+            stroke-width: 2;
+        }
+        .cable-active {
+            stroke: var(--color-arp-rep);
+            stroke-width: 3;
+            stroke-dasharray: 10;
+            animation: dash 0.5s linear infinite;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -20; }
+        }
+
+        /* Packets */
+        .packet {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            z-index: 20;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .pkt-arp-req { background: var(--color-arp-req); box-shadow: 0 0 10px var(--color-arp-req); }
+        .pkt-arp-rep { background: var(--color-arp-rep); box-shadow: 0 0 10px var(--color-arp-rep); }
+        .pkt-icmp { background: var(--color-icmp); color: white; box-shadow: 0 0 10px var(--color-icmp); }
+
+        /* Packet Label */
+        .packet::after {
+            content: attr(data-label);
+            position: absolute;
+            top: -18px;
+            font-size: 10px;
+            color: white;
+            white-space: nowrap;
+            background: rgba(0,0,0,0.7);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        /* --- ACTION BAR (Bottom of Center) --- */
+        .actions-bar {
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            border-top: 1px solid var(--bg-panel-border);
+            z-index: 20;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--color-arp-rep);
+            color: var(--color-arp-rep);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: var(--font-display);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: rgba(34, 211, 238, 0.1);
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .btn-danger {
+            border-color: #f87171;
+            color: #f87171;
+        }
+        .btn-danger:hover:not(:disabled) {
+            background: rgba(248, 113, 113, 0.1);
+            box-shadow: 0 0 15px rgba(248, 113, 113, 0.2);
+        }
+
+        /* --- TERMINAL --- */
+        .terminal {
+            height: 100%;
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 15px;
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            overflow-y: auto;
+            border: 1px solid #30363d;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .log-entry { opacity: 0; animation: fadeIn 0.3s forwards; display: flex; }
+        @keyframes fadeIn { to { opacity: 1; } }
+        
+        .log-ts { color: #6b7280; margin-right: 8px; min-width: 60px; }
+        .log-txt { color: #c9d1d9; }
+        .log-highlight { color: var(--color-arp-rep); }
+        .log-warn { color: var(--color-arp-req); }
+        .log-success { color: var(--color-success); }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            main { grid-template-columns: 280px 1fr; grid-template-rows: 1fr 200px; }
+            .sidebar.right { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 900px) {
+            main { display: flex; flex-direction: column; height: auto; }
+            .topology { height: 400px; }
+            .sidebar.right { display: flex; flex-direction: column; }
+            #node-A { top: 20px; left: 50%; transform: translateX(-50%); }
+            #switch { top: 180px; }
+            #node-B { bottom: 20px; left: 20px; }
+            #node-C { bottom: 20px; right: 20px; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="3"></circle>
+                <line x1="12" y1="2" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+            </svg>
+            ARP Visualizer
+        </div>
+        <div class="controls-top">
+            <div class="speed-control">
+                <span>Speed</span>
+                <input type="range" id="speedSlider" min="0.2" max="2" step="0.2" value="1">
+            </div>
+            <a href="#" style="color:var(--text-secondary); text-decoration:none; font-size:0.9rem;">Help</a>
+        </div>
+    </header>
+
+    <main>
+        <!-- LEFT PANEL: PC TABLES -->
+        <div class="sidebar left">
+            <!-- Alice -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Alice (PC-A)</span>
+                    <span class="badge">192.168.1.10</span>
+                </div>
+                <table class="data-table">
+                    <thead><tr><th>IP Address</th><th>MAC Address</th></tr></thead>
+                    <tbody id="table-A"><tr><td colspan="2" class="empty-state">Cache Empty</td></tr></tbody>
+                </table>
+            </div>
+
+            <!-- Bob -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Bob (PC-B)</span>
+                    <span class="badge">192.168.1.20</span>
+                </div>
+                <table class="data-table">
+                    <thead><tr><th>IP Address</th><th>MAC Address</th></tr></thead>
+                    <tbody id="table-B"><tr><td colspan="2" class="empty-state">Cache Empty</td></tr></tbody>
+                </table>
+            </div>
+
+            <!-- Charlie -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Charlie (PC-C)</span>
+                    <span class="badge">192.168.1.30</span>
+                </div>
+                <table class="data-table">
+                    <thead><tr><th>IP Address</th><th>MAC Address</th></tr></thead>
+                    <tbody id="table-C"><tr><td colspan="2" class="empty-state">Cache Empty</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CENTER: VISUALIZATION -->
+        <div class="viz-area">
+            <div class="viz-bg"></div>
+            
+            <div class="topology">
+                <!-- Cables SVG Layer -->
+                <svg class="cable-svg">
+                    <line id="line-A" class="cable-line" />
+                    <line id="line-A-active" class="cable-active" />
+                    
+                    <line id="line-B" class="cable-line" />
+                    <line id="line-B-active" class="cable-active" />
+                    
+                    <line id="line-C" class="cable-line" />
+                    <line id="line-C-active" class="cable-active" />
+                </svg>
+
+                <!-- Devices -->
+                <div id="node-A" class="device">
+                    <div class="dev-icon">💻</div>
+                    <div class="dev-name">Alice</div>
+                    <div class="dev-ip">192.168.1.10</div>
+                    <div class="dev-mac">AA:AA:AA:11</div>
+                </div>
+
+                <div id="switch" class="device">
+                    <div class="dev-icon">🔄</div>
+                    <div class="dev-name">L2 Switch</div>
+                    <div class="dev-mac" style="font-size: 0.6rem; opacity:0.7">CAM Table Active</div>
+                </div>
+
+                <div id="node-B" class="device">
+                    <div class="dev-icon">🖥️</div>
+                    <div class="dev-name">Bob</div>
+                    <div class="dev-ip">192.168.1.20</div>
+                    <div class="dev-mac">BB:BB:BB:22</div>
+                </div>
+
+                <div id="node-C" class="device">
+                    <div class="dev-icon">🖨️</div>
+                    <div class="dev-name">Charlie</div>
+                    <div class="dev-ip">192.168.1.30</div>
+                    <div class="dev-mac">CC:CC:CC:33</div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="actions-bar">
+                <button class="btn" onclick="sim.ping('A', 'B')">
+                    <span>📡</span> Ping Alice ➝ Bob
+                </button>
+                <button class="btn" onclick="sim.ping('A', 'C')">
+                    <span>📡</span> Ping Alice ➝ Charlie
+                </button>
+                <button class="btn btn-danger" onclick="sim.reset()">
+                    <span>🗑️</span> Reset Network
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: SWITCH & LOGS -->
+        <div class="sidebar right">
+            <!-- Switch MAC Table -->
+            <div class="panel" style="flex: 0 0 auto;">
+                <div class="panel-header">
+                    <span class="panel-title">Switch CAM Table</span>
+                    <span class="badge" style="background:rgba(251, 191, 36, 0.2); color:#fbbf24;">L2 Switching</span>
+                </div>
+                <table class="data-table">
+                    <thead><tr><th>Port / Node</th><th>MAC Address</th></tr></thead>
+                    <tbody id="table-Switch">
+                        <tr><td colspan="2" class="empty-state">No MACs Learned</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Terminal -->
+            <div class="panel" style="flex: 1; min-height: 200px;">
+                <div class="panel-header">
+                    <span class="panel-title">>_ System Log</span>
+                </div>
+                <div class="terminal" id="terminal">
+                    <div class="log-entry">
+                        <span class="log-ts">SYS</span>
+                        <span class="log-txt">Network initialized. Waiting for traffic...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        class NetworkSimulator {
+            constructor() {
+                this.nodes = {
+                    'A': { id: 'node-A', ip: '192.168.1.10', mac: 'AA:AA:AA:11', name: 'Alice', cache: {} },
+                    'B': { id: 'node-B', ip: '192.168.1.20', mac: 'BB:BB:BB:22', name: 'Bob', cache: {} },
+                    'C': { id: 'node-C', ip: '192.168.1.30', mac: 'CC:CC:CC:33', name: 'Charlie', cache: {} },
+                    'Switch': { id: 'switch', name: 'Switch', camTable: {} }
+                };
+                
+                this.isAnimating = false;
+                this.speedMultiplier = 1;
+                this.terminal = document.getElementById('terminal');
+
+                // Bind Speed Slider
+                document.getElementById('speedSlider').addEventListener('input', (e) => {
+                    this.speedMultiplier = parseFloat(e.target.value);
+                });
+
+                // Initial Layout
+                this.updateCables();
+                window.addEventListener('resize', () => this.updateCables());
+            }
+
+            // --- UTILITIES ---
+            log(msg, type = 'info') {
+                const div = document.createElement('div');
+                div.className = 'log-entry';
+                const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
+                
+                let colorClass = 'log-txt';
+                if(type === 'warn') colorClass = 'log-warn';
+                if(type === 'success') colorClass = 'log-success';
+                if(type === 'highlight') colorClass = 'log-highlight';
+
+                div.innerHTML = `<span class="log-ts">[${time}]</span><span class="${colorClass}">${msg}</span>`;
+                this.terminal.appendChild(div);
+                this.terminal.scrollTop = this.terminal.scrollHeight;
+            }
+
+            wait(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms / this.speedMultiplier));
+            }
+
+            // --- CABLE DRAWING ---
+            updateCables() {
+                const getCenter = (id) => {
+                    const rect = document.getElementById(id).getBoundingClientRect();
+                    const container = document.querySelector('.topology').getBoundingClientRect();
+                    return {
+                        x: rect.left + rect.width / 2 - container.left,
+                        y: rect.top + rect.height / 2 - container.top
+                    };
+                };
+
+                const switchPos = getCenter('switch');
+                
+                ['A', 'B', 'C'].forEach(key => {
+                    const nodePos = getCenter(this.nodes[key].id);
+                    const line = document.getElementById(`line-${key}`);
+                    const activeLine = document.getElementById(`line-${key}-active`);
+                    
+                    [line, activeLine].forEach(l => {
+                        l.setAttribute('x1', nodePos.x);
+                        l.setAttribute('y1', nodePos.y);
+                        l.setAttribute('x2', switchPos.x);
+                        l.setAttribute('y2', switchPos.y);
+                    });
+                });
+            }
+
+            activateCable(key, duration) {
+                const line = document.getElementById(`line-${key}-active`);
+                line.style.opacity = 1;
+                setTimeout(() => { line.style.opacity = 0; }, duration / this.speedMultiplier);
+            }
+
+            // --- ANIMATION ENGINE ---
+            async sendPacket(fromKey, toKey, type, label) {
+                const fromId = fromKey === 'Switch' ? 'switch' : this.nodes[fromKey].id;
+                const toId = toKey === 'Switch' ? 'switch' : this.nodes[toKey].id;
+                
+                // Identify which cable to light up
+                const cableKey = fromKey === 'Switch' ? toKey : fromKey;
+                
+                return new Promise(resolve => {
+                    // Create Packet
+                    const packet = document.createElement('div');
+                    packet.className = `packet pkt-${type.toLowerCase()}`;
+                    packet.innerHTML = type === 'ICMP' ? '✉️' : (type === 'ARP-REQ' ? '?' : '!');
+                    packet.setAttribute('data-label', label);
+                    document.querySelector('.topology').appendChild(packet);
+
+                    // Calc Positions
+                    const container = document.querySelector('.topology').getBoundingClientRect();
+                    const startRect = document.getElementById(fromId).getBoundingClientRect();
+                    const endRect = document.getElementById(toId).getBoundingClientRect();
+
+                    const startX = startRect.left + startRect.width/2 - container.left - 16;
+                    const startY = startRect.top + startRect.height/2 - container.top - 16;
+                    const endX = endRect.left + endRect.width/2 - container.left - 16;
+                    const endY = endRect.top + endRect.height/2 - container.top - 16;
+
+                    // Init Pos
+                    packet.style.left = `${startX}px`;
+                    packet.style.top = `${startY}px`;
+
+                    // Light up cable
+                    this.activateCable(cableKey, 1000);
+
+                    // Animate
+                    const anim = packet.animate([
+                        { transform: 'translate(0,0)' },
+                        { transform: `translate(${endX - startX}px, ${endY - startY}px)` }
+                    ], {
+                        duration: 1000 / this.speedMultiplier,
+                        easing: 'ease-in-out',
+                        fill: 'forwards'
+                    });
+
+                    anim.onfinish = () => {
+                        packet.remove();
+                        resolve();
+                    };
+                });
+            }
+
+            // --- LOGIC ---
+            async ping(srcKey, dstKey) {
+                if (this.isAnimating) return;
+                this.isAnimating = true;
+                const src = this.nodes[srcKey];
+                const dst = this.nodes[dstKey];
+
+                this.log(`Command: Ping ${dst.ip}`, 'highlight');
+
+                // Step 1: Check Local Cache
+                if (src.cache[dst.ip]) {
+                    this.log(`Make Frame: Dest MAC ${src.cache[dst.ip]} found in cache.`, 'success');
+                    await this.icmpSequence(srcKey, dstKey);
+                } else {
+                    this.log(`Cache Miss: Who is ${dst.ip}?`, 'warn');
+                    await this.arpSequence(srcKey, dstKey);
+                    
+                    this.log(`Resolution Complete. Sending ICMP Data...`, 'success');
+                    await this.wait(500);
+                    await this.icmpSequence(srcKey, dstKey);
+                }
+
+                this.isAnimating = false;
+            }
+
+            async arpSequence(srcKey, dstKey) {
+                const src = this.nodes[srcKey];
+                const dst = this.nodes[dstKey];
+
+                // 1. Packet creation (ARP Request)
+                this.log(`Generating Broadcast ARP Request...`);
+                await this.sendPacket(srcKey, 'Switch', 'ARP-REQ', 'Who has '+dst.ip+'?');
+                
+                // Switch Logic: Learn Source MAC
+                this.updateSwitchCam(srcKey, src.mac);
+                this.log(`Switch learns: Port ${srcKey} = ${src.mac}`);
+                await this.wait(300);
+
+                // 2. Switch Floods (Broadcast)
+                this.log(`Switch floods ARP Request to all ports.`, 'warn');
+                
+                const others = ['A', 'B', 'C'].filter(k => k !== srcKey);
+                const floodPromises = others.map(async (k) => {
+                    await this.sendPacket('Switch', k, 'ARP-REQ', 'ARP?');
+                    
+                    if (k === dstKey) {
+                        this.pulseDevice(k);
+                        this.log(`${this.nodes[k].name}: That's my IP!`, 'success');
+                        // Target learns Source MAC (Gratuitous/optimization)
+                        this.updateNodeCache(k, src.ip, src.mac); 
+                    } else {
+                        this.log(`${this.nodes[k].name}: Not me. Drop.`);
+                    }
+                });
+
+                await Promise.all(floodPromises);
+                await this.wait(500);
+
+                // 3. Target Unicast Reply
+                this.log(`${dst.name} sends ARP Reply (Unicast).`, 'highlight');
+                await this.sendPacket(dstKey, 'Switch', 'ARP-REP', `I am ${dst.mac}`);
+                
+                // Switch Logic: Learn Target MAC
+                this.updateSwitchCam(dstKey, dst.mac);
+                
+                // 4. Switch Forwarding
+                this.log(`Switch forwards reply to ${src.name}.`);
+                await this.sendPacket('Switch', srcKey, 'ARP-REP', 'ARP Reply');
+                
+                // 5. Source Update
+                this.pulseDevice(srcKey);
+                this.updateNodeCache(srcKey, dst.ip, dst.mac);
+                this.log(`${src.name} updates ARP Cache.`, 'success');
+            }
+
+            async icmpSequence(srcKey, dstKey) {
+                // Request
+                await this.sendPacket(srcKey, 'Switch', 'ICMP', 'Ping Req');
+                this.pulseDevice('switch');
+                // Switch Look up
+                this.log(`Switch looks up Dest MAC in CAM Table... found port ${dstKey}.`);
+                await this.wait(200);
+                
+                await this.sendPacket('Switch', dstKey, 'ICMP', 'Ping Req');
+                this.pulseDevice(dstKey);
+                
+                await this.wait(300);
+
+                // Reply
+                await this.sendPacket(dstKey, 'Switch', 'ICMP', 'Ping Rep');
+                this.pulseDevice('switch');
+                await this.wait(200);
+                
+                await this.sendPacket('Switch', srcKey, 'ICMP', 'Ping Rep');
+                this.pulseDevice(srcKey);
+                
+                this.log(`Ping Reply received. RTT <1ms`, 'success');
+            }
+
+            // --- DATA UPDATES ---
+            pulseDevice(id) {
+                const elId = id === 'switch' ? 'switch' : this.nodes[id].id;
+                const el = document.getElementById(elId);
+                el.classList.add('pulse');
+                setTimeout(() => el.classList.remove('pulse'), 600);
+            }
+
+            updateNodeCache(nodeKey, ip, mac) {
+                this.nodes[nodeKey].cache[ip] = mac;
+                const tbody = document.getElementById(`table-${nodeKey}`);
+                
+                // Clear empty state
+                if(tbody.querySelector('.empty-state')) tbody.innerHTML = '';
+                
+                // Check if row exists
+                const existing = Array.from(tbody.querySelectorAll('tr')).find(row => row.cells[0].innerText === ip);
+                if (!existing) {
+                    tbody.innerHTML += `<tr><td>${ip}</td><td>${mac}</td></tr>`;
+                }
+            }
+
+            updateSwitchCam(port, mac) {
+                if (this.nodes['Switch'].camTable[mac]) return; // Already known
+                
+                this.nodes['Switch'].camTable[mac] = port;
+                const tbody = document.getElementById('table-Switch');
+                
+                if(tbody.querySelector('.empty-state')) tbody.innerHTML = '';
+                
+                tbody.innerHTML += `<tr><td>Port ${port} (${this.nodes[port].name})</td><td>${mac}</td></tr>`;
+            }
+
+            reset() {
+                if(this.isAnimating) return;
+                
+                // Clear Data
+                ['A', 'B', 'C'].forEach(k => {
+                    this.nodes[k].cache = {};
+                    document.getElementById(`table-${k}`).innerHTML = '<tr><td colspan="2" class="empty-state">Cache Empty</td></tr>';
+                });
+                
+                this.nodes['Switch'].camTable = {};
+                document.getElementById('table-Switch').innerHTML = '<tr><td colspan="2" class="empty-state">No MACs Learned</td></tr>';
+                
+                this.terminal.innerHTML = '';
+                this.log('System reset. All caches cleared.', 'warn');
+            }
+        }
+
+        // Init
+        const sim = new NetworkSimulator();
+    </script>
+</body>
+</html>
