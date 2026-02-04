@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | DNS Record Explorer</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons (Phosphor) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-darker: #020617;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.4);
+            --purple: #8b5cf6;
+            --blue: #3b82f6;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --border: #334155;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.9);
+        }
+        
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s;
+        }
+        .back-btn:hover { color: var(--text-main); }
+
+        /* --- MAIN LAYOUT --- */
+        .main-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            height: calc(100vh - 75px);
+        }
+
+        /* --- SIDEBAR (Controls) --- */
+        .sidebar {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .sidebar-section h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: var(--font-code);
+            font-size: 1rem;
+            width: 100%;
+            outline: none;
+        }
+
+        .type-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .type-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .type-btn:hover {
+            border-color: var(--text-main);
+            color: var(--text-main);
+        }
+
+        .type-btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .query-btn {
+            background: var(--purple);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            margin-top: auto;
+        }
+        .query-btn:hover { background: #7c3aed; }
+        .query-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* --- DISPLAY AREA --- */
+        .display-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        /* TERMINAL */
+        .terminal {
+            flex: 1;
+            background: var(--bg-darker);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            color: #e2e8f0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .term-header {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+        }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
+
+        .term-line {
+            margin-bottom: 8px;
+            line-height: 1.5;
+            display: flex;
+        }
+        .term-prompt { color: var(--accent); margin-right: 10px; min-width: 20px; }
+        .term-cmd { color: var(--text-main); }
+        .term-output { color: var(--text-muted); white-space: pre-wrap; }
+        .highlight-record { color: var(--orange); font-weight: bold; }
+        
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background: var(--text-muted);
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* INFO CARD */
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 150px;
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            transition: all 0.3s;
+        }
+
+        .info-icon {
+            font-size: 3rem;
+            color: var(--accent);
+            background: rgba(34, 197, 94, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .info-content h2 {
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: var(--border);
+            color: var(--text-muted);
+        }
+
+        .info-desc {
+            color: var(--text-muted);
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        /* ANIMATION OVERLAY */
+        .network-anim {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            position: relative;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .net-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            z-index: 2;
+        }
+        .net-icon { font-size: 1.5rem; color: var(--text-muted); }
+        .net-label { font-size: 0.7rem; color: var(--text-muted); }
+
+        .net-line {
+            position: absolute;
+            left: 60px;
+            right: 60px;
+            top: 50%;
+            height: 2px;
+            background: var(--border);
+            z-index: 1;
+        }
+
+        .net-packet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--accent);
+            border-radius: 50%;
+            top: 50%;
+            left: 60px; /* Start pos */
+            transform: translateY(-50%);
+            box-shadow: 0 0 10px var(--accent);
+            opacity: 0;
+            z-index: 3;
+        }
+
+        @keyframes packetTravel {
+            0% { left: 60px; opacity: 1; }
+            50% { left: calc(100% - 60px); opacity: 1; }
+            51% { left: calc(100% - 60px); opacity: 1; background: var(--purple); box-shadow: 0 0 10px var(--purple); }
+            100% { left: 60px; opacity: 1; background: var(--purple); box-shadow: 0 0 10px var(--purple); }
+        }
+
+        .animating .net-packet {
+            animation: packetTravel 1.5s ease-in-out forwards;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 800px) {
+            .main-container { grid-template-columns: 1fr; height: auto; }
+            .sidebar { order: 2; }
+            .display-area { order: 1; height: 500px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <i class="ph ph-magnifying-glass" style="font-size: 1.5rem; color: var(--accent);"></i>
+            <h1>DNS Record Explorer</h1>
+        </div>
+        <a href="06-dns.html" class="back-link">
+            <i class="ph ph-arrow-left"></i>
+            Back to Module
+        </a>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3>Target Domain</h3>
+                <div class="input-group">
+                    <i class="ph ph-globe" style="color: var(--text-muted); margin-right: 8px;"></i>
+                    <input type="text" id="domainInput" value="google.com" placeholder="example.com">
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Record Type</h3>
+                <div class="type-grid">
+                    <button class="type-btn active" onclick="selectType(this, 'A')">A</button>
+                    <button class="type-btn" onclick="selectType(this, 'AAAA')">AAAA</button>
+                    <button class="type-btn" onclick="selectType(this, 'MX')">MX</button>
+                    <button class="type-btn" onclick="selectType(this, 'CNAME')">CNAME</button>
+                    <button class="type-btn" onclick="selectType(this, 'TXT')">TXT</button>
+                    <button class="type-btn" onclick="selectType(this, 'NS')">NS</button>
+                </div>
+            </div>
+
+            <button class="query-btn" id="queryBtn" onclick="runQuery()">
+                <i class="ph ph-terminal-window"></i> Run DIG Query
+            </button>
+        </aside>
+
+        <!-- DISPLAY AREA -->
+        <main class="display-area">
+            
+            <!-- Network Animation Visual -->
+            <div class="network-anim" id="netAnim">
+                <div class="net-line"></div>
+                <div class="net-packet"></div>
+                
+                <div class="net-node">
+                    <i class="ph ph-laptop net-icon"></i>
+                    <span class="net-label">CLIENT</span>
+                </div>
+                <div class="net-node">
+                    <i class="ph ph-cloud net-icon"></i>
+                    <span class="net-label">INTERNET</span>
+                </div>
+                <div class="net-node">
+                    <i class="ph ph-server net-icon"></i>
+                    <span class="net-label">DNS SERVER</span>
+                </div>
+            </div>
+
+            <!-- Terminal Output -->
+            <div class="terminal" id="terminal">
+                <div class="term-header">
+                    <span class="dot red"></span>
+                    <span class="dot yellow"></span>
+                    <span class="dot green"></span>
+                </div>
+                <div class="term-content" id="termContent">
+                    <div class="term-line">
+                        <span class="term-prompt">➜</span>
+                        <span class="term-cmd">Select a record type and click Query to begin...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="info-card" id="infoCard">
+                <div class="info-icon">
+                    <i class="ph ph-info"></i>
+                </div>
+                <div class="info-content">
+                    <h2>Record Info <span class="info-badge">Select Type</span></h2>
+                    <p class="info-desc">Choose a DNS record type from the left sidebar to understand its purpose and see how it looks in a real query.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentType = 'A';
+        let isRunning = false;
+        
+        const descriptions = {
+            'A': {
+                title: 'Address Record (IPv4)',
+                desc: 'The most fundamental record type. It maps a domain name (like google.com) to a 32-bit IPv4 address (like 142.250.190.46). Browsers need this IP to establish a connection.',
+                icon: 'ph-map-pin'
+            },
+            'AAAA': {
+                title: 'IPv6 Address Record',
+                desc: 'Similar to the A record, but maps a domain to a 128-bit IPv6 address. As IPv4 addresses run out, AAAA records are becoming essential for the modern internet.',
+                icon: 'ph-globe'
+            },
+            'MX': {
+                title: 'Mail Exchange Record',
+                desc: 'Specifies the mail servers responsible for accepting email on behalf of your domain. Includes a priority number (e.g., 10, 20) to determine which server to try first.',
+                icon: 'ph-envelope'
+            },
+            'CNAME': {
+                title: 'Canonical Name Record',
+                desc: 'An alias record. It maps one domain name to another canonical domain name. Often used to map "www.example.com" to "example.com". It cannot coexist with other records.',
+                icon: 'ph-arrows-left-right'
+            },
+            'TXT': {
+                title: 'Text Record',
+                desc: 'Originally for human-readable text, now primarily used for machine verification. Essential for email security (SPF, DKIM, DMARC) and verifying domain ownership for services like Google/AWS.',
+                icon: 'ph-file-text'
+            },
+            'NS': {
+                title: 'Name Server Record',
+                desc: 'Delegates a DNS zone to use specific Authoritative Name Servers. These records tell the internet "If you want to find subdomains for this domain, ask these servers."',
+                icon: 'ph-tree-structure'
+            }
+        };
+
+        function selectType(btn, type) {
+            if (isRunning) return;
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentType = type;
+            updateInfoCard(type);
+        }
+
+        function updateInfoCard(type) {
+            const data = descriptions[type];
+            const card = document.getElementById('infoCard');
+            
+            card.innerHTML = `
+                <div class="info-icon">
+                    <i class="ph ${data.icon}"></i>
+                </div>
+                <div class="info-content">
+                    <h2>${data.title} <span class="info-badge">${type}</span></h2>
+                    <p class="info-desc">${data.desc}</p>
+                </div>
+            `;
+        }
+
+        async function runQuery() {
+            if (isRunning) return;
+            isRunning = true;
+            
+            const domain = document.getElementById('domainInput').value.trim() || 'example.com';
+            const term = document.getElementById('termContent');
+            const btn = document.getElementById('queryBtn');
+            const anim = document.getElementById('netAnim');
+
+            btn.disabled = true;
+
+            // Clear terminal prompt line
+            term.innerHTML += `
+                <div class="term-line">
+                    <span class="term-prompt">➜</span>
+                    <span class="term-cmd">dig ${domain} ${currentType} +noall +answer</span>
+                </div>
+            `;
+            
+            // Start Animation
+            anim.classList.add('animating');
+
+            // Wait for "Network Travel" (simulated)
+            await new Promise(r => setTimeout(r, 1500));
+
+            // Generate Mock Result
+            const result = generateResult(domain, currentType);
+            
+            // Type out output
+            const outputLine = document.createElement('div');
+            outputLine.className = 'term-line term-output';
+            term.appendChild(outputLine);
+
+            // Scroll to bottom
+            const terminalContainer = document.getElementById('terminal');
+            terminalContainer.scrollTop = terminalContainer.scrollHeight;
+
+            // Simulate typing effect for the output block
+            outputLine.innerHTML = result;
+
+            // Reset
+            anim.classList.remove('animating');
+            isRunning = false;
+            btn.disabled = false;
+            
+            // Add new prompt
+            term.innerHTML += `
+                <div class="term-line" style="margin-top: 15px;">
+                    <span class="cursor"></span>
+                </div>
+            `;
+            terminalContainer.scrollTop = terminalContainer.scrollHeight;
+        }
+
+        function generateResult(domain, type) {
+            const ttl = Math.floor(Math.random() * 300) + 60;
+            
+            let answer = ``;
+            
+            switch(type) {
+                case 'A':
+                    const ip = `${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
+                    answer = `${domain}.\t\t${ttl}\tIN\t<span class="highlight-record">A</span>\t${ip}`;
+                    break;
+                case 'AAAA':
+                    answer = `${domain}.\t\t${ttl}\tIN\t<span class="highlight-record">AAAA</span>\t2607:f8b0:4005:80a::200e`;
+                    break;
+                case 'MX':
+                    answer = `${domain}.\t\t${ttl}\tIN\t<span class="highlight-record">MX</span>\t10 aspmx.l.google.com.\n`;
+                    answer += `${domain}.\t\t${ttl}\tIN\t<span class="highlight-record">MX</span>\t20 alt1.aspmx.l.google.com.`;
+                    break;
+                case 'CNAME':
+                    // Typically used on subdomains
+                    if (domain.split('.').length < 3) {
+                         answer = `;; NOTE: CNAMEs usually exist on subdomains (like www)\n`;
+                         answer += `www.${domain}.\t${ttl}\tIN\t<span class="highlight-record">CNAME</span>\t${domain}.`;
+                    } else {
+                        const root = domain.split('.').slice(1).join('.');
+                        answer = `${domain}.\t\t${ttl}\tIN\t<span class="highlight-record">CNAME</span>\t${root}.`;
+                    }
+                    break;
+                case 'TXT':
+                    answer = `${domain}.\t\t${ttl}\tIN\t<span class="highlight-record">TXT</span>\t"v=spf1 include:_spf.google.com ~all"\n`;
+                    answer += `${domain}.\t\t${ttl}\tIN\t<span class="highlight-record">TXT</span>\t"google-site-verification=TV9-D9..."`;
+                    break;
+                case 'NS':
+                    answer = `${domain}.\t\t${ttl}\tIN\t<span class="highlight-record">NS</span>\tns1.digitalocean.com.\n`;
+                    answer += `${domain}.\t\t${ttl}\tIN\t<span class="highlight-record">NS</span>\tns2.digitalocean.com.`;
+                    break;
+            }
+
+            return answer;
+        }
+
+        // Init
+        updateInfoCard('A');
+    </script>
+</body>
+</html>
