@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | Frame Delivery Visualizer</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CORE THEME --- */
+        :root {
+            --bg-body: #0f172a;       
+            --bg-card: #1e293b;       
+            --text-main: #f8fafc;     
+            --text-muted: #94a3b8;    
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;        
+            --purple: #8b5cf6;
+            --warning: #f59e0b;
+            --border: #334155;
+            
+            --font-head: 'Poppins', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* --- HEADER --- */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { font-family: var(--font-head); font-size: 1.8rem; }
+        .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .back-link:hover { color: var(--accent); }
+
+        /* --- MAIN GRID --- */
+        .sim-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 900px) {
+            .sim-grid { grid-template-columns: 1fr; }
+        }
+
+        /* --- VISUALIZATION AREA --- */
+        .vis-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            position: relative;
+            min-height: 450px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.3);
+        }
+
+        /* Network Central Node */
+        .network-center {
+            width: 120px;
+            height: 120px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 2px dashed var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        }
+        .network-label {
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* Hosts */
+        .host {
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: transform 0.3s;
+        }
+        .host-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            position: relative;
+        }
+        
+        /* Status Indicators */
+        .status-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .status-badge.accepted { background: var(--accent); color: #000; opacity: 1; transform: scale(1); }
+        .status-badge.dropped { background: var(--danger); color: #fff; opacity: 1; transform: scale(1); }
+
+        .host.sending .host-icon { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
+        .host-info { text-align: center; font-family: var(--font-code); font-size: 0.75rem; color: var(--text-muted); }
+        .host-group { font-size: 0.6rem; color: var(--purple); opacity: 0; transition: opacity 0.3s; }
+        .host.multicast-group .host-group { opacity: 1; }
+
+        /* Host Positions (Star Topology) */
+        #host-src { top: 20px; left: 50%; transform: translateX(-50%); } /* Sender Top */
+        #host-1 { bottom: 50px; left: 10%; }
+        #host-2 { bottom: 20px; left: 35%; }
+        #host-3 { bottom: 20px; right: 35%; }
+        #host-4 { bottom: 50px; right: 10%; }
+
+        /* Packet Animation */
+        .packet {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            z-index: 20;
+            display: none;
+            transition: top 1s linear, left 1s linear;
+        }
+        /* Packet Colors */
+        .pkt-unicast { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+        .pkt-broadcast { background: var(--warning); box-shadow: 0 0 10px var(--warning); }
+        .pkt-multicast { background: var(--purple); box-shadow: 0 0 10px var(--purple); }
+
+        /* --- CONTROLS --- */
+        .control-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .btn-sim {
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.5);
+            color: var(--text-muted);
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-sim:hover { background: rgba(255,255,255,0.05); }
+        
+        .btn-sim.active-uni { border-color: var(--accent); color: var(--accent); background: rgba(34, 197, 94, 0.05); }
+        .btn-sim.active-broad { border-color: var(--warning); color: var(--warning); background: rgba(245, 158, 11, 0.05); }
+        .btn-sim.active-multi { border-color: var(--purple); color: var(--purple); background: rgba(139, 92, 246, 0.05); }
+
+        .btn-icon { width: 20px; text-align: center; font-weight: bold; }
+
+        /* Info Panel */
+        .info-panel {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            min-height: 120px;
+        }
+        .info-title { color: var(--text-main); margin-bottom: 8px; font-weight: bold; display: block; }
+        .info-detail { line-height: 1.6; }
+        .highlight { color: var(--accent); background: rgba(34,197,94,0.1); padding: 2px 4px; border-radius: 4px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <h1>Frame Delivery Visualizer</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Visualizing Unicast, Broadcast, and Multicast traffic patterns.</p>
+            </div>
+            <a href="../modules/05-mac.html" class="back-link">← Back to Module</a>
+        </header>
+
+        <div class="sim-grid">
+            
+            <!-- LEFT: VISUALIZATION -->
+            <div class="vis-panel" id="visPanel">
+                <!-- Center Node -->
+                <div class="network-center" id="netCenter">
+                    <div class="network-label">Local<br>Network</div>
+                </div>
+
+                <!-- Sender -->
+                <div class="host" id="host-src">
+                    <div class="host-icon">📡
+                        <div class="status-badge" id="badge-src"></div>
+                    </div>
+                    <div class="host-info">Sender<br>192.168.1.10</div>
+                </div>
+
+                <!-- Receivers -->
+                <div class="host" id="host-1">
+                    <div class="host-icon">💻
+                        <div class="status-badge" id="badge-1"></div>
+                    </div>
+                    <div class="host-info">PC-1<br>AA:AA:AA</div>
+                    <div class="host-group">Group: 224.0.0.5</div>
+                </div>
+
+                <div class="host" id="host-2">
+                    <div class="host-icon">💻
+                        <div class="status-badge" id="badge-2"></div>
+                    </div>
+                    <div class="host-info">PC-2<br>BB:BB:BB</div>
+                    <!-- Not in group -->
+                </div>
+
+                <div class="host" id="host-3">
+                    <div class="host-icon">💻
+                        <div class="status-badge" id="badge-3"></div>
+                    </div>
+                    <div class="host-info">PC-3<br>CC:CC:CC</div>
+                    <div class="host-group">Group: 224.0.0.5</div>
+                </div>
+
+                <div class="host" id="host-4">
+                    <div class="host-icon">💻
+                        <div class="status-badge" id="badge-4"></div>
+                    </div>
+                    <div class="host-info">PC-4<br>DD:DD:DD</div>
+                    <!-- Not in group -->
+                </div>
+            </div>
+
+            <!-- RIGHT: CONTROLS -->
+            <div class="data-panel">
+                <div class="control-box">
+                    <h4 style="margin-bottom: 15px; color: var(--text-main);">Select Traffic Type</h4>
+                    <div class="btn-group">
+                        <button class="btn-sim" onclick="startSim('unicast', this)">
+                            <span class="btn-icon" style="color: var(--accent);">●</span> 
+                            <div>
+                                <strong>Unicast</strong><br>
+                                <span style="font-size: 0.75rem; opacity: 0.7;">One-to-One</span>
+                            </div>
+                        </button>
+                        
+                        <button class="btn-sim" onclick="startSim('multicast', this)">
+                            <span class="btn-icon" style="color: var(--purple);">●</span> 
+                            <div>
+                                <strong>Multicast</strong><br>
+                                <span style="font-size: 0.75rem; opacity: 0.7;">One-to-Group</span>
+                            </div>
+                        </button>
+                        
+                        <button class="btn-sim" onclick="startSim('broadcast', this)">
+                            <span class="btn-icon" style="color: var(--warning);">●</span> 
+                            <div>
+                                <strong>Broadcast</strong><br>
+                                <span style="font-size: 0.75rem; opacity: 0.7;">One-to-All</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- INFO LOG -->
+                <div class="info-panel" id="infoPanel">
+                    <span class="info-title">System Status</span>
+                    <div class="info-detail">Waiting for input... Select a traffic type above to begin simulation.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const centerNode = document.getElementById('netCenter');
+        const sender = document.getElementById('host-src');
+        const hosts = [
+            document.getElementById('host-1'),
+            document.getElementById('host-2'),
+            document.getElementById('host-3'),
+            document.getElementById('host-4')
+        ];
+        
+        let isAnimating = false;
+
+        // --- SIMULATION LOGIC ---
+
+        function startSim(type, btn) {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            // Reset UI
+            document.querySelectorAll('.btn-sim').forEach(b => b.className = 'btn-sim'); // Remove active classes
+            document.querySelectorAll('.status-badge').forEach(b => {
+                b.className = 'status-badge'; 
+                b.innerText = '';
+            });
+            document.querySelectorAll('.host').forEach(h => h.classList.remove('multicast-group'));
+
+            // Set Active UI
+            const activeClass = type === 'unicast' ? 'active-uni' : (type === 'multicast' ? 'active-multi' : 'active-broad');
+            btn.classList.add(activeClass);
+            
+            updateInfo(type);
+
+            // Highlight Multicast Group if needed
+            if (type === 'multicast') {
+                hosts[0].classList.add('multicast-group'); // Host 1
+                hosts[2].classList.add('multicast-group'); // Host 3
+            }
+
+            // Phase 1: Sender to Center
+            sender.classList.add('sending');
+            const pkt = createPacket(type);
+            animatePacket(pkt, sender, centerNode, () => {
+                sender.classList.remove('sending');
+                pkt.remove();
+
+                // Phase 2: Center to Destinations
+                distributePackets(type);
+            });
+        }
+
+        function distributePackets(type) {
+            let targets = [];
+            let ignored = [];
+
+            if (type === 'unicast') {
+                targets = [hosts[1]]; // Send to PC-2 (Index 1)
+                ignored = [hosts[0], hosts[2], hosts[3]];
+            } else if (type === 'multicast') {
+                targets = [hosts[0], hosts[2]]; // Send to PC-1 & PC-3
+                ignored = [hosts[1], hosts[3]];
+            } else if (type === 'broadcast') {
+                targets = hosts; // All
+                ignored = [];
+            }
+
+            // Animate to Targets
+            let completed = 0;
+            const total = targets.length + ignored.length; // Wait for everyone? No, just targets visually
+
+            // Send packets to EVERYONE visually, but decide result at end
+            // Actually, usually switch only sends to targets. 
+            // BUT:
+            // Broadcast: Sends to all.
+            // Unicast: Sends to one (if switch knows mac). Let's assume switch knows.
+            // Multicast: Sends to subscribed ports.
+            
+            // To make visualizer clearer, we only show packets going to where the switch forwards them.
+            // EXCEPT for Broadcast, where it goes everywhere.
+            
+            // Let's stick to strict logic:
+            // Unicast -> Only 1 line active.
+            // Broadcast -> All lines active.
+            // Multicast -> Only Group lines active.
+
+            targets.forEach(target => {
+                const pkt = createPacket(type);
+                animatePacket(pkt, centerNode, target, () => {
+                    pkt.remove();
+                    setStatus(target, 'accepted');
+                    checkFinish();
+                });
+            });
+
+            // For visualization purposes, we won't animate packets to 'ignored' hosts
+            // unless it was a Hub simulation. Since this assumes intelligent delivery (or Switch/Router logic),
+            // packets only go where intended.
+            
+            // However, to show they are ignored/excluded, we can briefly show a status on them?
+            // No, it's cleaner if they just receive nothing.
+
+            const checkFinish = () => {
+                completed++;
+                if (completed === targets.length) {
+                    isAnimating = false;
+                }
+            };
+        }
+
+        function animatePacket(pkt, fromEl, toEl, callback) {
+            const panel = document.getElementById('visPanel');
+            const panelRect = panel.getBoundingClientRect();
+            const fromRect = fromEl.getBoundingClientRect();
+            const toRect = toEl.getBoundingClientRect();
+
+            const startX = fromRect.left + fromRect.width/2 - panelRect.left - 7;
+            const startY = fromRect.top + fromRect.height/2 - panelRect.top - 7;
+            
+            const endX = toRect.left + toRect.width/2 - panelRect.left - 7;
+            const endY = toRect.top + toRect.height/2 - panelRect.top - 7;
+
+            pkt.style.left = startX + 'px';
+            pkt.style.top = startY + 'px';
+            pkt.style.display = 'block';
+
+            // Force reflow
+            void pkt.offsetWidth;
+
+            pkt.style.left = endX + 'px';
+            pkt.style.top = endY + 'px';
+
+            setTimeout(callback, 1000);
+        }
+
+        function createPacket(type) {
+            const pkt = document.createElement('div');
+            pkt.className = `packet pkt-${type}`;
+            document.getElementById('visPanel').appendChild(pkt);
+            return pkt;
+        }
+
+        function setStatus(hostEl, status) {
+            const badge = hostEl.querySelector('.status-badge');
+            if (status === 'accepted') {
+                badge.classList.add('accepted');
+                badge.innerHTML = '✓';
+            } else {
+                badge.classList.add('dropped');
+                badge.innerHTML = '✕';
+            }
+            
+            setTimeout(() => {
+                badge.className = 'status-badge';
+                badge.innerHTML = '';
+            }, 2000);
+        }
+
+        function updateInfo(type) {
+            const panel = document.getElementById('infoPanel');
+            let html = '';
+            
+            if (type === 'unicast') {
+                html = `
+                    <span class="info-title" style="color: var(--accent);">Unicast (One-to-One)</span>
+                    <div class="info-detail">
+                        Destination MAC: <span class="highlight">BB:BB:BB:BB:BB:BB</span><br>
+                        The frame is addressed to a specific device. The network infrastructure forwards it <strong>only</strong> to PC-2.
+                        <br><br>
+                        <em>Use case: Web browsing, File downloads.</em>
+                    </div>`;
+            } else if (type === 'multicast') {
+                html = `
+                    <span class="info-title" style="color: var(--purple);">Multicast (One-to-Group)</span>
+                    <div class="info-detail">
+                        Destination IP: <span class="highlight">224.0.0.5</span> (OSPF)<br>
+                        Sent to a special group address. Only devices that have "joined" this group (PC-1, PC-3) receive the traffic.
+                        <br><br>
+                        <em>Use case: Routing updates, IPTV, Zoom calls.</em>
+                    </div>`;
+            } else if (type === 'broadcast') {
+                html = `
+                    <span class="info-title" style="color: var(--warning);">Broadcast (One-to-All)</span>
+                    <div class="info-detail">
+                        Destination MAC: <span class="highlight">FF:FF:FF:FF:FF:FF</span><br>
+                        The "shout" of networking. The switch floods this frame out of every port. Every device must process it.
+                        <br><br>
+                        <em>Use case: ARP Requests, DHCP Discovery.</em>
+                    </div>`;
+            }
+            
+            panel.innerHTML = html;
+        }
+
+    </script>
+</body>
+</html>
