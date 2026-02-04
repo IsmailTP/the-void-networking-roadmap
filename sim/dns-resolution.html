@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | DNS Resolution Visualizer</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons (Phosphor) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --accent-glow: rgba(34, 197, 94, 0.4);
+            --purple: #8b5cf6;
+            --purple-glow: rgba(139, 92, 246, 0.4);
+            --blue: #3b82f6;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --border: #334155;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.9);
+        }
+        
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .back-btn {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s;
+        }
+        .back-btn:hover { color: var(--text-main); }
+
+        /* --- MAIN LAYOUT --- */
+        .main-container {
+            flex: 1;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            position: relative;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            background: var(--bg-card);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 5px 10px;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .prefix {
+            color: var(--text-muted);
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            margin-right: 5px;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: var(--font-code);
+            font-size: 1rem;
+            width: 100%;
+            outline: none;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 15px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .btn-secondary:hover {
+            border-color: var(--text-main);
+            color: var(--text-main);
+        }
+
+        /* --- VISUALIZATION AREA --- */
+        .viz-area {
+            position: relative;
+            background: rgba(30, 41, 59, 0.3);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        /* NODES */
+        .node {
+            position: absolute;
+            width: 140px;
+            padding: 15px;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 2;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .node i { font-size: 2rem; color: var(--text-muted); }
+        .node-label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-align: center; }
+        .node-ip { font-family: var(--font-code); font-size: 0.7rem; color: var(--text-muted); opacity: 0.7; }
+        
+        .node.active {
+            border-color: var(--accent);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+        }
+        .node.active i { color: var(--accent); }
+        .node.active .node-label { color: var(--text-main); }
+
+        /* Positioning Nodes */
+        #node-client { bottom: 50px; left: 50px; }
+        #node-resolver { bottom: 50px; left: 50%; transform: translateX(-50%); width: 160px; }
+        
+        #node-root { top: 50px; left: 50px; }
+        #node-tld { top: 50px; left: 50%; transform: translateX(-50%); }
+        #node-auth { top: 50px; right: 50px; }
+        
+        /* Mobile adjustment */
+        @media (max-width: 900px) {
+            .node { width: 100px; padding: 10px; font-size: 0.8rem; }
+            .node i { font-size: 1.5rem; }
+            #node-client { bottom: 20px; left: 20px; }
+            #node-resolver { bottom: 150px; left: 20px; transform: none; }
+            #node-root { top: 20px; right: 20px; left: auto; }
+            #node-tld { top: 140px; right: 20px; left: auto; transform: none; }
+            #node-auth { top: 260px; right: 20px; left: auto; }
+        }
+
+        /* CONNECTIONS (SVG) */
+        .connections {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .connection-line {
+            stroke: var(--border);
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 10;
+        }
+
+        /* PACKET */
+        .packet {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent);
+            z-index: 10;
+            display: none; /* Hidden by default */
+            transition: left 1s linear, top 1s linear;
+        }
+        .packet.query { background: var(--orange); box-shadow: 0 0 10px var(--orange); }
+        .packet.response { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+        /* PACKET LABEL */
+        .packet-label {
+            position: absolute;
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-family: var(--font-code);
+            white-space: nowrap;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        /* --- CONSOLE LOG --- */
+        .console-panel {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            height: 200px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .console-header {
+            padding: 8px 15px;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .console-title {
+            font-family: var(--font-code);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .console-content {
+            padding: 10px;
+            overflow-y: auto;
+            flex: 1;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            color: #c9d1d9;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 10px;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+        
+        .log-time { color: var(--text-muted); min-width: 70px; }
+        .log-type { font-weight: bold; }
+        .log-type.INFO { color: var(--blue); }
+        .log-type.QUERY { color: var(--orange); }
+        .log-type.SUCCESS { color: var(--accent); }
+        .log-type.ERROR { color: var(--red); }
+        
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* --- STATUS BADGES --- */
+        .status-badge {
+            position: absolute;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            top: -10px;
+            right: -10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s;
+        }
+        .status-badge.show { opacity: 1; transform: translateY(0); }
+        .status-badge.hit { background: var(--accent); color: #000; border-color: var(--accent); }
+        .status-badge.miss { background: var(--orange); color: #000; border-color: var(--orange); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <i class="ph ph-globe-hemisphere-west" style="font-size: 1.5rem; color: var(--accent);"></i>
+            <h1>DNS Resolution Visualizer</h1>
+        </div>
+        <a href="06-dns.html" class="back-link">
+            <i class="ph ph-arrow-left"></i>
+            Back to Module
+        </a>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- Controls -->
+        <div class="controls">
+            <div class="input-group">
+                <span class="prefix">https://</span>
+                <input type="text" id="domainInput" value="example.com" placeholder="Enter domain...">
+            </div>
+            <button class="btn-primary" id="startBtn" onclick="startSimulation()">
+                <i class="ph ph-play"></i> Resolve
+            </button>
+            <button class="btn-secondary" onclick="resetSimulation()">
+                <i class="ph ph-arrow-counter-clockwise"></i> Reset
+            </button>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+                <label style="font-size: 0.85rem; color: var(--text-muted);">
+                    <input type="checkbox" id="cacheToggle"> Simulate Cache Hit
+                </label>
+            </div>
+        </div>
+
+        <!-- Visualization Area -->
+        <div class="viz-area" id="vizArea">
+            <svg class="connections" id="svgConnections"></svg>
+            
+            <!-- Packet -->
+            <div class="packet" id="packet">
+                <div class="packet-label" id="packetLabel">Query</div>
+            </div>
+
+            <!-- Nodes -->
+            <div class="node" id="node-client">
+                <span class="status-badge" id="badge-client"></span>
+                <i class="ph ph-laptop"></i>
+                <div class="node-label">Your Client</div>
+                <div class="node-ip">192.168.1.45</div>
+            </div>
+
+            <div class="node" id="node-resolver">
+                <span class="status-badge" id="badge-resolver"></span>
+                <i class="ph ph-server"></i>
+                <div class="node-label">Recursive Resolver</div>
+                <div class="node-ip">8.8.8.8</div>
+            </div>
+
+            <div class="node" id="node-root">
+                <i class="ph ph-globe"></i>
+                <div class="node-label">Root Server (.)</div>
+                <div class="node-ip">198.41.0.4</div>
+            </div>
+
+            <div class="node" id="node-tld">
+                <i class="ph ph-folders"></i>
+                <div class="node-label">TLD Server (.com)</div>
+                <div class="node-ip">192.5.6.30</div>
+            </div>
+
+            <div class="node" id="node-auth">
+                <i class="ph ph-database"></i>
+                <div class="node-label">Authoritative NS</div>
+                <div class="node-ip">ns1.example.com</div>
+            </div>
+        </div>
+
+        <!-- Console -->
+        <div class="console-panel">
+            <div class="console-header">
+                <span class="console-title">Resolution Log</span>
+                <button style="background:none; border:none; color:var(--text-muted); cursor:pointer;" onclick="clearLog()">Clear</button>
+            </div>
+            <div class="console-content" id="consoleContent">
+                <div class="log-entry">
+                    <span class="log-time">--:--:--</span>
+                    <span class="log-msg" style="color: var(--text-muted);">Ready to resolve. Enter a domain and click Resolve.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- CONFIGURATION --- */
+        const ANIMATION_SPEED = 1200; // ms per hop
+        const nodes = {
+            client: document.getElementById('node-client'),
+            resolver: document.getElementById('node-resolver'),
+            root: document.getElementById('node-root'),
+            tld: document.getElementById('node-tld'),
+            auth: document.getElementById('node-auth')
+        };
+        const packet = document.getElementById('packet');
+        const packetLabel = document.getElementById('packetLabel');
+        const svg = document.getElementById('svgConnections');
+        const consoleContent = document.getElementById('consoleContent');
+        const startBtn = document.getElementById('startBtn');
+        const domainInput = document.getElementById('domainInput');
+        
+        let isSimulating = false;
+
+        /* --- INITIALIZATION --- */
+        window.addEventListener('resize', drawConnections);
+        // Initial draw
+        setTimeout(drawConnections, 100);
+
+        /* --- LOGIC --- */
+
+        async function startSimulation() {
+            if (isSimulating) return;
+            
+            const domain = domainInput.value.trim() || 'example.com';
+            if (!isValidDomain(domain)) {
+                log('ERROR', 'Invalid domain format');
+                return;
+            }
+
+            const simulateCache = document.getElementById('cacheToggle').checked;
+
+            isSimulating = true;
+            startBtn.disabled = true;
+            domainInput.disabled = true;
+            resetVisuals();
+            
+            log('INFO', `Starting resolution for: ${domain}`);
+
+            // STEP 1: Client checks local cache
+            highlightNode('client');
+            await wait(500);
+            
+            if (simulateCache) {
+                showBadge('client', 'hit', 'CACHE HIT');
+                log('SUCCESS', 'Domain found in local OS cache / hosts file.');
+                log('INFO', 'Resolution complete (0ms latency).');
+                finishSimulation();
+                return;
+            } else {
+                showBadge('client', 'miss', 'CACHE MISS');
+                log('INFO', 'Not found in local cache. Sending recursive query...');
+                await wait(800);
+            }
+
+            // STEP 2: Client -> Resolver
+            await movePacket('client', 'resolver', 'Where is ' + domain + '?');
+            highlightNode('resolver');
+            log('QUERY', `Recursive query received by Resolver (8.8.8.8)`);
+            
+            // Resolver checks cache (simulated miss for demo purposes unless explicitly coded, 
+            // but for this visualizer we assume the resolver needs to do the work to show the full flow)
+            showBadge('resolver', 'miss', 'CACHE MISS');
+            await wait(500);
+            log('INFO', 'Resolver cache miss. Starting Iterative process.');
+
+            // STEP 3: Resolver -> Root
+            const tld = domain.split('.').pop();
+            await movePacket('resolver', 'root', `Where is .${tld}?`);
+            highlightNode('root');
+            log('QUERY', `Querying Root Server for .${tld} TLD`);
+            await wait(500);
+            
+            // Root -> Resolver
+            await movePacket('root', 'resolver', `Go to .${tld} server`, 'response');
+            highlightNode('resolver');
+            log('INFO', `Root referred to TLD Name Servers`);
+
+            // STEP 4: Resolver -> TLD
+            await movePacket('resolver', 'tld', `Where is ${domain}?`);
+            highlightNode('tld');
+            log('QUERY', `Querying TLD Server for ${domain}`);
+            await wait(500);
+
+            // TLD -> Resolver
+            await movePacket('tld', 'resolver', `Go to Auth NS`, 'response');
+            highlightNode('resolver');
+            log('INFO', `TLD referred to Authoritative Name Servers`);
+
+            // STEP 5: Resolver -> Auth
+            await movePacket('resolver', 'auth', `IP for ${domain}?`);
+            highlightNode('auth');
+            log('QUERY', `Querying Authoritative Server`);
+            await wait(500);
+
+            // Auth -> Resolver (Final Answer)
+            const mockIP = generateMockIP();
+            await movePacket('auth', 'resolver', mockIP, 'response');
+            highlightNode('resolver');
+            log('SUCCESS', `Resolver received IP: ${mockIP}`);
+            await wait(300);
+            log('INFO', `Resolver caching result for TTL 300s`);
+
+            // STEP 6: Resolver -> Client
+            await movePacket('resolver', 'client', mockIP, 'response');
+            highlightNode('client');
+            log('SUCCESS', `Client received IP: ${mockIP}`);
+            
+            finishSimulation();
+        }
+
+        function finishSimulation() {
+            isSimulating = false;
+            startBtn.disabled = false;
+            domainInput.disabled = false;
+            packet.style.display = 'none';
+            // Clear highlights
+            Object.values(nodes).forEach(n => n.classList.remove('active'));
+            log('INFO', '--- Transaction Complete ---');
+        }
+
+        function resetSimulation() {
+            isSimulating = false;
+            startBtn.disabled = false;
+            domainInput.disabled = false;
+            resetVisuals();
+            clearLog();
+            log('INFO', 'Ready.');
+        }
+
+        /* --- VISUAL HELPERS --- */
+
+        async function movePacket(fromId, toId, labelText, type = 'query') {
+            const fromNode = nodes[fromId];
+            const toNode = nodes[toId];
+            
+            // Get coordinates relative to vizArea
+            const areaRect = document.getElementById('vizArea').getBoundingClientRect();
+            const fromRect = fromNode.getBoundingClientRect();
+            const toRect = toNode.getBoundingClientRect();
+
+            const startX = (fromRect.left + fromRect.width/2) - areaRect.left;
+            const startY = (fromRect.top + fromRect.height/2) - areaRect.top;
+            const endX = (toRect.left + toRect.width/2) - areaRect.left;
+            const endY = (toRect.top + toRect.height/2) - areaRect.top;
+
+            // Setup packet
+            packet.style.display = 'block';
+            packet.className = `packet ${type}`;
+            packetLabel.textContent = labelText;
+            
+            // Position start
+            packet.style.left = `${startX}px`;
+            packet.style.top = `${startY}px`;
+            
+            // Force reflow
+            packet.offsetHeight;
+
+            // Animate
+            packet.style.transition = `left ${ANIMATION_SPEED}ms linear, top ${ANIMATION_SPEED}ms linear`;
+            packet.style.left = `${endX}px`;
+            packet.style.top = `${endY}px`;
+
+            // Wait for animation
+            await wait(ANIMATION_SPEED);
+        }
+
+        function highlightNode(id) {
+            Object.values(nodes).forEach(n => n.classList.remove('active'));
+            nodes[id].classList.add('active');
+        }
+
+        function showBadge(nodeId, type, text) {
+            const badge = document.getElementById(`badge-${nodeId}`);
+            if(!badge) return;
+            badge.className = `status-badge show ${type}`;
+            badge.textContent = text;
+        }
+
+        function resetVisuals() {
+            Object.values(nodes).forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.status-badge').forEach(b => b.classList.remove('show'));
+            packet.style.display = 'none';
+        }
+
+        function drawConnections() {
+            // Clear existing lines
+            svg.innerHTML = '';
+            
+            // Define connections
+            const lines = [
+                ['client', 'resolver'],
+                ['resolver', 'root'],
+                ['resolver', 'tld'],
+                ['resolver', 'auth']
+            ];
+
+            const areaRect = document.getElementById('vizArea').getBoundingClientRect();
+
+            lines.forEach(([start, end]) => {
+                const startNode = nodes[start];
+                const endNode = nodes[end];
+                
+                if (!startNode || !endNode) return;
+
+                const startRect = startNode.getBoundingClientRect();
+                const endRect = endNode.getBoundingClientRect();
+
+                const x1 = (startRect.left + startRect.width/2) - areaRect.left;
+                const y1 = (startRect.top + startRect.height/2) - areaRect.top;
+                const x2 = (endRect.left + endRect.width/2) - areaRect.left;
+                const y2 = (endRect.top + endRect.height/2) - areaRect.top;
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('class', 'connection-line');
+                svg.appendChild(line);
+            });
+        }
+
+        /* --- UTILS --- */
+        
+        function log(type, msg) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: "numeric", minute: "numeric", second: "numeric" });
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${timeStr}</span>
+                <span class="log-type ${type}">[${type}]</span>
+                <span class="log-msg">${msg}</span>
+            `;
+            
+            consoleContent.appendChild(entry);
+            consoleContent.scrollTop = consoleContent.scrollHeight;
+        }
+
+        function clearLog() {
+            consoleContent.innerHTML = '';
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function generateMockIP() {
+            return Math.floor(Math.random() * 255) + "." + 
+                   Math.floor(Math.random() * 255) + "." + 
+                   Math.floor(Math.random() * 255) + "." + 
+                   Math.floor(Math.random() * 255);
+        }
+
+        function isValidDomain(domain) {
+            const pattern = new RegExp(/^((?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}$/);
+            return pattern.test(domain);
+        }
+
+    </script>
+</body>
+</html>
