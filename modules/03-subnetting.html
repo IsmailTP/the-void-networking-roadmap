@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO METADATA -->
-    <meta name="description" content="Master IPv4 addressing, binary logic, and subnetting. Learn CIDR, private vs public IPs, and network boundaries for cybersecurity.">
-    <meta name="keywords" content="IPv4, Subnetting, CIDR, Binary, Private IP, Public IP, Loopback, APIPA, Networking Lab">
+    <meta name="description" content="Master IPv4 addressing, binary logic, subnetting math, and CIDR. Learn how network segmentation applies to cybersecurity and troubleshooting.">
+    <meta name="keywords" content="IPv4, Subnetting, CIDR, Binary, Private IP, Public IP, Network Segmentation, Cybersecurity Lab">
     <meta name="author" content="The Void">
     
     <title>The Void | IP Addressing & Subnetting</title>
@@ -162,90 +162,134 @@
         }
         main h2 { 
             font-size: 1.8rem; 
-            margin: 0 0 10px; 
+            margin: 0 0 20px; 
             color: var(--text-main); 
             display: flex;
             align-items: center;
             gap: 10px;
             scroll-margin-top: 100px;
         }
-        h3 { font-size: 1.3rem; margin: 30px 0 10px; color: var(--text-main); }
+        h3 { font-size: 1.3rem; margin: 30px 0 15px; color: var(--text-main); }
         p { margin-bottom: 20px; color: var(--text-muted); font-size: 1.05rem; }
+        
+        ul, ol { margin-bottom: 20px; padding-left: 25px; color: var(--text-muted); }
+        li { margin-bottom: 10px; }
 
         /* --- BINARY CHART --- */
         .binary-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
             gap: 10px;
             margin: 25px 0;
         }
         .bit-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            padding: 15px;
+            padding: 10px;
             border-radius: 8px;
             text-align: center;
         }
-        .bit-val { color: var(--accent); font-family: var(--font-code); font-weight: bold; font-size: 1.2rem; display: block; }
-        .bit-pos { color: var(--text-muted); font-size: 0.75rem; font-family: var(--font-code); }
+        .bit-val { color: var(--accent); font-family: var(--font-code); font-weight: bold; font-size: 1.1rem; display: block; }
+        .bit-pos { color: var(--text-muted); font-size: 0.7rem; font-family: var(--font-code); }
 
-        /* --- WARNING BOX --- */
-        .danger-zone {
-            background: rgba(239, 68, 68, 0.08);
-            border: 1px solid var(--danger);
-            padding: 20px;
-            border-radius: var(--radius);
+        /* --- NETWORK VIZ --- */
+        .net-viz {
+            display: flex;
             margin: 25px 0;
-            color: #fca5a5;
+            font-family: var(--font-code);
+            text-align: center;
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--border);
         }
-        .danger-zone strong { color: var(--danger); }
+        .net-portion { background: rgba(34, 197, 94, 0.1); flex: 3; padding: 15px; border-right: 1px dashed var(--accent); }
+        .host-portion { background: rgba(139, 92, 246, 0.1); flex: 1; padding: 15px; }
+        .viz-label { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 5px; text-transform: uppercase; }
 
-        /* --- SPECIAL BOXES (Shared) --- */
-        .hackers-note {
-            background: rgba(139, 92, 246, 0.08);
-            border-left: 4px solid var(--purple);
+        /* --- WARNING/INFO BOXES --- */
+        .info-box {
+            background: rgba(30, 41, 59, 0.5);
+            border-left: 4px solid var(--accent);
             padding: 20px;
             border-radius: 0 var(--radius) var(--radius) 0;
             margin: 25px 0;
         }
+        .info-box h4 { margin: 0 0 10px; color: var(--text-main); font-size: 1rem; }
+
         .security-check {
-            background: rgba(34, 197, 94, 0.05);
-            border: 1px solid rgba(34, 197, 94, 0.3);
+            background: rgba(139, 92, 246, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.3);
             border-radius: var(--radius);
-            padding: 15px 20px;
+            padding: 20px;
             margin: 25px 0;
-            display: flex;
-            gap: 15px;
         }
-        .sc-content h4 { color: var(--accent); margin-bottom: 5px; font-size: 1rem; }
+        .security-check h4 { color: var(--purple); margin: 0 0 10px; font-size: 1.1rem; }
 
-        /* --- TABLES --- */
-        .table-container { overflow-x: auto; margin: 25px 0; border: 1px solid var(--border); border-radius: var(--radius); }
-        table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
-        th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); border-bottom: 1px solid var(--border); }
-        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.9rem; }
-
-        /* --- BUTTONS --- */
+        /* --- SIMULATION BUTTON (RESTORED) --- */
         .btn-sim {
             background: rgba(34, 197, 94, 0.1);
             border: 1px solid var(--accent);
             color: var(--accent);
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 6px;
             cursor: pointer;
             font-family: var(--font-code);
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             transition: all 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: bold;
             text-decoration: none;
-            margin-top: 10px;
+            margin-top: 15px;
         }
-        .btn-sim:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent-glow); }
+        .btn-sim:hover { 
+            background: var(--accent); 
+            color: #000; 
+            box-shadow: 0 0 15px var(--accent-glow); 
+            transform: translateY(-2px);
+        }
+
+        /* --- TABLES --- */
+        .table-container { overflow-x: auto; margin: 25px 0; border: 1px solid var(--border); border-radius: var(--radius); }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
+        th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); border-bottom: 1px solid var(--border); font-family: var(--font-code); font-size: 0.9rem; }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.95rem; }
+        code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-family: var(--font-code); color: var(--accent); font-size: 0.9em; }
+
+        /* --- PRACTICE LAB --- */
+        .lab-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: var(--radius);
+            margin: 30px 0;
+        }
+        .lab-question {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .lab-question strong { color: var(--text-main); display: block; margin-bottom: 8px; }
+        
+        .btn-toggle {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+        .btn-toggle:hover { opacity: 0.9; transform: translateY(-1px); }
+        .answer-key { display: none; margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border); }
+        .answer-key.visible { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         .module-footer {
             margin-top: 40px;
@@ -286,37 +330,51 @@
 
         <header>
             <div class="module-meta">
-                <span class="meta-badge difficulty">Difficult</span>
-                <span class="meta-badge">⏱ 2-3 Hours</span>
-                <span class="meta-badge">Prereq: Module 02</span>
+                <span class="meta-badge difficulty">Beginner → Intermediate</span>
+                <span class="meta-badge">⏱ 75–90 Minutes</span>
+                <span class="meta-badge">Core Skill</span>
             </div>
             <h1>IP Addressing & Subnetting</h1>
-            <p style="max-width: 700px;">Subnetting is the language of network boundaries. Without it, you cannot define firewall rules, map targets, or pivot through an enterprise network.</p>
+            <p style="max-width: 700px;">Understanding the logical addressing system of the internet. From binary basics to calculating complex network boundaries for firewall evasion and defense.</p>
         </header>
 
         <div class="layout-grid">
             <aside class="sidebar">
                 <div class="toc">
                     <h4>On this page</h4>
-                    <a href="#binary">1. Binary Logic</a>
-                    <a href="#special-ip">2. Special IP Ranges</a>
-                    <a href="#cidr">3. Subnetting & CIDR</a>
-                    <a href="#segmentation">4. Network Segmentation</a>
-                    <a href="#recap">📌 Module Recap</a>
+                    <a href="#structure">1. IPv4 Structure</a>
+                    <a href="#binary">2. Binary Logic</a>
+                    <a href="#net-host">3. Net vs Host</a>
+                    <a href="#cidr">4. Masks & CIDR</a>
+                    <a href="#subnetting">5. Subnetting Math</a>
+                    <a href="#types">6. IP Types</a>
+                    <a href="#troubleshooting">7. Troubleshooting</a>
+                    <a href="#security">8. Security Context</a>
+                    <a href="#lab">🧪 Practice Lab</a>
                 </div>
             </aside>
 
             <main>
-                <!-- DANGER ZONE CALLOUT -->
-                <div class="danger-zone">
-                    <strong>⚠️ GATEKEEPER:</strong> Mastering this math is mandatory. If you cannot calculate a usable host range for a <code>/27</code> network in your head, do not proceed to the exploitation modules.
-                </div>
-
-                <!-- 1. BINARY LOGIC -->
-                <section id="binary">
-                    <h2>1. Binary Logic</h2>
-                    <p>An IPv4 address is just a 32-bit number hidden behind four octets. To understand masks, you must master the "Power of 2".</p>
+                <!-- 1. IPv4 STRUCTURE -->
+                <section id="structure">
+                    <h2>1. IPv4 Structure</h2>
+                    <p>An IPv4 address serves two purposes: it identifies the host (computer) and the network it belongs to. It is a 32-bit number, usually represented in "Dotted Decimal" notation for human readability.</p>
                     
+                    <div class="info-box">
+                        <h4>Structure Breakdown</h4>
+                        <p style="margin-bottom: 0;"><strong>Format:</strong> <code>x.x.x.x</code> (Four Octets)<br>
+                        <strong>Range per Octet:</strong> 0 to 255<br>
+                        <strong>Example:</strong> <code>192.168.1.50</code></p>
+                    </div>
+                </section>
+
+                <!-- 2. BINARY LOGIC -->
+                <section id="binary">
+                    <h2>2. Binary Logic</h2>
+                    <p>Computers do not see <code>192</code>. They see <code>11000000</code>. To understand subnetting, you must be comfortable with the "Power of 2".</p>
+                    
+                    <p>Each octet has 8 bits. The values of these bits, from left to right, are:</p>
+
                     <div class="binary-container">
                         <div class="bit-card"><span class="bit-val">128</span><span class="bit-pos">2⁷</span></div>
                         <div class="bit-card"><span class="bit-val">64</span><span class="bit-pos">2⁶</span></div>
@@ -328,52 +386,47 @@
                         <div class="bit-card"><span class="bit-val">1</span><span class="bit-pos">2⁰</span></div>
                     </div>
 
-                    <div class="hackers-note">
-                        <h4>Conversion Tip</h4>
-                        <p>To convert decimal to binary, simply subtract the largest possible power of 2. <br>
-                        Example: <strong>192</strong> = 128 + 64. So in binary, it is <code>11000000</code>.</p>
+                    <div class="info-box">
+                        <h4>Conversion Example: 192</h4>
+                        <p>Does 128 fit into 192? <strong>Yes</strong> (Remainder 64). Bit = 1.<br>
+                        Does 64 fit into 64? <strong>Yes</strong> (Remainder 0). Bit = 1.<br>
+                        Remaining bits are 0.<br>
+                        <strong>Result:</strong> <code>11000000</code></p>
                     </div>
                 </section>
 
-                <!-- 2. SPECIAL IP RANGES -->
-                <section id="special-ip">
-                    <h2>2. Special IP Ranges</h2>
-                    <p>RFC 1918 defines the addresses we use internally. These are never "routable" on the public internet.</p>
-
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr><th>Type</th><th>Range</th><th>Typical Use</th></tr>
-                            </thead>
-                            <tbody>
-                                <tr><td><strong>Class A Private</strong></td><td>10.0.0.0/8</td><td>Enterprises, Data Centers</td></tr>
-                                <tr><td><strong>Class B Private</strong></td><td>172.16.0.0/12</td><td>Universities, Labs</td></tr>
-                                <tr><td><strong>Class C Private</strong></td><td>192.168.0.0/16</td><td>Home Networks, Wi-Fi</td></tr>
-                                <tr><td><strong>Loopback</strong></td><td>127.0.0.1</td><td>The local machine (Self)</td></tr>
-                                <tr><td><strong>APIPA</strong></td><td>169.254.x.x</td><td>DHCP Failure (Bad sign)</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="security-check">
-                        <div class="sc-content">
-                            <h4>🕵️ Recon Insight</h4>
-                            <p>If you perform a scan and see a 169.254.x.x address, the target has failed to get an IP. This machine is isolated and likely misconfigured—an easy target.</p>
+                <!-- 3. NETWORK VS HOST -->
+                <section id="net-host">
+                    <h2>3. Network vs Host Portion</h2>
+                    <p>Every IP address is split into two parts. The Subnet Mask determines where the line is drawn.</p>
+                    
+                    <div class="net-viz">
+                        <div class="net-portion">
+                            <span style="color: var(--accent); font-weight: bold;">NETWORK ID</span>
+                            <span class="viz-label">Street Name (Shared by all)</span>
+                        </div>
+                        <div class="host-portion">
+                            <span style="color: var(--purple); font-weight: bold;">HOST ID</span>
+                            <span class="viz-label">House Number (Unique)</span>
                         </div>
                     </div>
+                    
+                    <p>Devices can only talk directly to other devices if their <strong>Network ID</strong> matches perfectly. If the Network ID is different, they must send traffic to a Gateway (Router).</p>
                 </section>
 
-                <!-- 3. CIDR -->
+                <!-- 4. SUBNET MASKS & CIDR -->
                 <section id="cidr">
-                    <h2>3. Subnetting & CIDR</h2>
-                    <p>CIDR (Classless Inter-Domain Routing) notation tells us how many bits are used for the <strong>Network</strong> vs the <strong>Host</strong>.</p>
+                    <h2>4. Subnet Masks & CIDR</h2>
+                    <p>The Subnet Mask tells the computer which bits belong to the network. CIDR (Classless Inter-Domain Routing) is the shorthand notation (e.g., <code>/24</code>).</p>
 
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr><th>CIDR</th><th>Mask</th><th>Total Hosts</th><th>Usable Hosts</th></tr>
+                                <tr><th>CIDR</th><th>Subnet Mask</th><th>Hosts (Total)</th><th>Usable Hosts</th></tr>
                             </thead>
                             <tbody>
+                                <tr><td>/8</td><td>255.0.0.0</td><td>16,777,216</td><td>16M+</td></tr>
+                                <tr><td>/16</td><td>255.255.0.0</td><td>65,536</td><td>65,534</td></tr>
                                 <tr><td>/24</td><td>255.255.255.0</td><td>256</td><td>254</td></tr>
                                 <tr><td>/25</td><td>255.255.255.128</td><td>128</td><td>126</td></tr>
                                 <tr><td>/26</td><td>255.255.255.192</td><td>64</td><td>62</td></tr>
@@ -382,24 +435,122 @@
                             </tbody>
                         </table>
                     </div>
+                    <p><small><em>*Usable Hosts = Total - 2 (One for Network ID, one for Broadcast).</em></small></p>
+                </section>
 
-                    <div class="mini-lab">
-                        <h4>🧪 The "Minus 2" Rule</h4>
-                        <p>In every subnet, the <strong>first</strong> IP is the Network ID and the <strong>last</strong> IP is the Broadcast. You cannot assign these to a computer. <br>
-                        <em>Formula: (2^bits) - 2 = Usable Hosts.</em></p>
+                <!-- 5. SUBNETTING MATH WALKTHROUGH -->
+                <section id="subnetting">
+                    <h2>5. Subnetting Math: A Walkthrough</h2>
+                    <p>Let's calculate the range for a specific network. This is a critical skill for configuring networks and setting scan ranges.</p>
+                    
+                    <div class="info-box" style="border-left-color: var(--purple);">
+                        <h3>Example: 192.168.10.0/26</h3>
+                        
+                        <p><strong>Step 1: Identify the Block Size</strong><br>
+                        A <code>/26</code> means 26 bits are on. The last octet has 2 bits on (<code>11000000</code>).<br>
+                        Decimal value of mask: 128 + 64 = <strong>192</strong>.<br>
+                        <span style="color: var(--accent);">Block Size Formula:</span> 256 - Mask = Block Size.<br>
+                        256 - 192 = <strong>64</strong>.</p>
+
+                        <p><strong>Step 2: List the Subnets (Increments of 64)</strong><br>
+                        1. <code>192.168.10.0</code><br>
+                        2. <code>192.168.10.64</code><br>
+                        3. <code>192.168.10.128</code><br>
+                        4. <code>192.168.10.192</code></p>
+
+                        <p><strong>Step 3: Analyze the First Subnet (.0)</strong><br>
+                        <strong>Network ID:</strong> 192.168.10.0<br>
+                        <strong>First Usable:</strong> 192.168.10.1<br>
+                        <strong>Last Usable:</strong> 192.168.10.62<br>
+                        <strong>Broadcast:</strong> 192.168.10.63</p>
+                    </div>
+
+                    <!-- RESTORED SIMULATION LINK -->
+                    <div style="background: rgba(34, 197, 94, 0.05); padding: 25px; border-radius: var(--radius); border: 1px dashed var(--accent); margin-top: 25px;">
+                        <h4 style="color: var(--text-main); margin-bottom: 10px;">⚡ Interactive Simulator</h4>
+                        <p style="margin-bottom: 15px;">Want to visualize the bits changing in real-time? Use our calculator to experiment with different CIDR notations.</p>
                         <a href="../sim/subnet-calc.html" class="btn-sim">Launch Subnet Trainer</a>
                     </div>
                 </section>
 
-                <!-- 4. SEGMENTATION -->
-                <section id="segmentation">
-                    <h2>4. Network Segmentation</h2>
-                    <p>By splitting a large network (e.g., a /16) into many small subnets (e.g., /24s), admins can enforce security policies between departments.</p>
+                <!-- 6. ADDRESS TYPES -->
+                <section id="types">
+                    <h2>6. Public vs. Private IPs</h2>
+                    <p>Not all IPs are routable on the internet. RFC 1918 defines "Private" ranges used inside LANs (Local Area Networks).</p>
 
-                    <div class="security-check" style="border-color: var(--purple);">
-                        <div class="sc-content">
-                            <h4 style="color: var(--purple);">🛡️ Lateral Movement Defense</h4>
-                            <p>If a hacker compromises a PC in the "Guest Wi-Fi" subnet, they shouldn't be able to "see" the "Server Room" subnet. Proper subnetting creates <strong>Internal Choke Points</strong> for firewalls to inspect traffic.</p>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Type</th><th>Range</th><th>Description</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><strong>Class A Private</strong></td><td>10.0.0.0/8</td><td>Large Enterprise / Data Centers</td></tr>
+                                <tr><td><strong>Class B Private</strong></td><td>172.16.0.0/12</td><td>AWS VPCs, Universities, Docker</td></tr>
+                                <tr><td><strong>Class C Private</strong></td><td>192.168.0.0/16</td><td>Home routers, Small Business</td></tr>
+                                <tr><td><strong>Loopback</strong></td><td>127.0.0.0/8</td><td>Refers to "This Machine" (localhost)</td></tr>
+                                <tr><td><strong>APIPA</strong></td><td>169.254.x.x</td><td>DHCP Failed (Self-assigned)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 7. TROUBLESHOOTING -->
+                <section id="troubleshooting">
+                    <h2>7. Troubleshooting Network Issues</h2>
+                    <p>When connectivity fails, follow this checklist to isolate the problem.</p>
+                    
+                    <ol>
+                        <li><strong>Check IP & Mask:</strong> Is the device in the correct subnet? Does the mask match the router?</li>
+                        <li><strong>Check Gateway:</strong> Is the Default Gateway address in the <em>same</em> subnet as the device? (It must be).</li>
+                        <li><strong>Check APIPA:</strong> If you see <code>169.254.x.x</code>, the DHCP server is unreachable.</li>
+                        <li><strong>Ping Loopback:</strong> <code>ping 127.0.0.1</code> verifies the TCP/IP stack is working on the OS.</li>
+                        <li><strong>Ping Gateway:</strong> Verifies connection to the local router.</li>
+                    </ol>
+                </section>
+
+                <!-- 8. SECURITY CONTEXT -->
+                <section id="security">
+                    <h2>8. 🛡️ Security Context</h2>
+                    <div class="security-check">
+                        <h4>How Hackers Use Subnetting</h4>
+                        <p><strong>1. Target Mapping:</strong> When performing a scan with Nmap, hacking tools assume a <code>/24</code> by default. If a company uses a <code>/23</code> (510 hosts), a lazy hacker scanning <code>192.168.1.0/24</code> will miss half the targets (the <code>192.168.0.x</code> range).</p>
+                        <p><strong>2. Pivot Points:</strong> Compromising a machine with two network interfaces (Dual Homed) allows an attacker to route traffic from one subnet to another, bypassing firewalls. This is called "Pivoting".</p>
+                        <p><strong>3. Firewall Evasion:</strong> Understanding subnet boundaries helps in crafting packets that might slip through ACLs (Access Control Lists) that are poorly defined (e.g., allowing "Any" instead of a specific range).</p>
+                    </div>
+                </section>
+
+                <!-- 9. PRACTICE LAB -->
+                <section id="lab">
+                    <h2>🧪 Subnet Practice Lab</h2>
+                    <p>Test your knowledge. Try to solve these without a calculator first.</p>
+
+                    <div class="lab-box">
+                        <div class="lab-question">
+                            <strong>Q1: What is the broadcast address for 192.168.1.0/25?</strong>
+                            <span style="font-size: 0.9rem; color: var(--text-muted);">Hint: /25 splits a /24 in half.</span>
+                        </div>
+                        <div class="lab-question">
+                            <strong>Q2: How many usable hosts does a /30 network provide?</strong>
+                            <span style="font-size: 0.9rem; color: var(--text-muted);">Hint: Often used for Point-to-Point links.</span>
+                        </div>
+                        <div class="lab-question">
+                            <strong>Q3: Is 172.20.10.5 a Public or Private IP?</strong>
+                        </div>
+                        <div class="lab-question">
+                            <strong>Q4: Can Host A (192.168.1.10/24) talk directly to Host B (192.168.2.10/24)?</strong>
+                        </div>
+                        <div class="lab-question">
+                            <strong>Q5: You see an IP 169.254.12.5. What does this indicate?</strong>
+                        </div>
+
+                        <button class="btn-toggle" onclick="toggleAnswers()">Show Answers</button>
+
+                        <div id="answers" class="answer-key">
+                            <p><strong>A1:</strong> 192.168.1.127 (Range is 0-127)</p>
+                            <p><strong>A2:</strong> 2 Usable Hosts (Total 4 minus NetID and Broadcast)</p>
+                            <p><strong>A3:</strong> Private (It falls within 172.16.0.0 - 172.31.255.255)</p>
+                            <p><strong>A4:</strong> No. They are in different networks (1.x vs 2.x). They need a router.</p>
+                            <p><strong>A5:</strong> DHCP Failure (APIPA address).</p>
                         </div>
                     </div>
                 </section>
@@ -409,10 +560,11 @@
                     <div class="recap-box" style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
                         <h3>📌 Module Recap</h3>
                         <ul style="padding-left: 20px;">
-                            <li style="margin-bottom: 10px;"><strong>Binary</strong> is the foundation of all subnet masking.</li>
-                            <li style="margin-bottom: 10px;"><strong>Private IPs</strong> stay internal; <strong>Public IPs</strong> are internet-facing.</li>
-                            <li style="margin-bottom: 10px;"><strong>CIDR</strong> notation (like /24) is a shorthand for the subnet mask.</li>
-                            <li style="margin-bottom: 10px;"><strong>Segmentation</strong> uses subnets to isolate sensitive data from common users.</li>
+                            <li><strong>IP Address:</strong> Logical ID (Network + Host).</li>
+                            <li><strong>Subnet Mask:</strong> Defines the boundary between Network and Host bits.</li>
+                            <li><strong>CIDR:</strong> Shorthand for masks (e.g., /24). Higher number = smaller network.</li>
+                            <li><strong>Network ID:</strong> First IP (Unusable). <strong>Broadcast:</strong> Last IP (Unusable).</li>
+                            <li><strong>Private IPs:</strong> (10.x, 172.16-31.x, 192.168.x) are not routable on the open internet.</li>
                         </ul>
                     </div>
                 </section>
@@ -422,7 +574,7 @@
                     <a href="02-osi-model.html" class="back-link">← Previous Module</a>
                     <div>
                         <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">Next: MAC & Local Network</div>
-                        <a href="05-mac-arp.html" class="btn-next">Next Module →</a>
+                        <a href="04-mac-arp.html" class="btn-next">Next Module →</a>
                     </div>
                 </div>
             </main>
@@ -455,9 +607,22 @@
         }, { threshold: 0.3 });
         sections.forEach(section => observer.observe(section));
 
-        // Progress Tracking
+        // Lab Answer Toggle
+        function toggleAnswers() {
+            const key = document.getElementById('answers');
+            const btn = document.querySelector('.btn-toggle');
+            if (key.classList.contains('visible')) {
+                key.classList.remove('visible');
+                btn.textContent = "Show Answers";
+            } else {
+                key.classList.add('visible');
+                btn.textContent = "Hide Answers";
+            }
+        }
+
+        // Progress Tracking (Module 3)
         window.onload = function() {
-            const MODULE_ID = 2; // Unique ID for Phase 3
+            const MODULE_ID = 3; 
             let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
             if(!savedProgress.includes(MODULE_ID)) {
                 savedProgress.push(MODULE_ID);
