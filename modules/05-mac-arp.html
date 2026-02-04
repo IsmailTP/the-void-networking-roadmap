@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO METADATA -->
-    <meta name="description" content="Master Layer 2 security: MAC addresses, ARP packet structure, and switch security. Learn about MITM attacks, VLAN segmentation, and enterprise defense.">
-    <meta name="keywords" content="MAC Address, ARP Packet, Address Resolution Protocol, Network Switch, VLAN, ARP Spoofing, CAM Table, Port Security, Cybersecurity">
+    <meta name="description" content="Master Layer 2 networking: MAC addresses, ARP tables, Switch logic, and Layer 2 attacks. Learn how devices communicate on a local network.">
+    <meta name="keywords" content="MAC Address, ARP, Switch, OUI, ARP Spoofing, Layer 2, Networking, Cybersecurity, CAM Table, MITM">
     <meta name="author" content="The Void">
     
     <title>The Void | MAC & Local Networking</title>
@@ -49,7 +49,7 @@
             background-size: 40px 40px;
         }
 
-        /* --- UI COMPONENTS --- */
+        /* --- READING PROGRESS BAR --- */
         .reading-progress {
             position: fixed;
             top: 0;
@@ -72,6 +72,7 @@
             padding: 0 20px;
         }
 
+        /* --- NAV BAR --- */
         .top-nav {
             padding: 20px 0;
             border-bottom: 1px solid var(--border);
@@ -91,6 +92,7 @@
         }
         .back-link:hover { color: var(--accent); }
 
+        /* --- HEADER & METADATA --- */
         header { margin-bottom: 50px; }
         h1 { font-size: 2.5rem; margin-bottom: 15px; color: var(--text-main); }
         .module-meta {
@@ -110,7 +112,7 @@
             color: var(--text-muted);
             border: 1px solid rgba(255,255,255,0.1);
         }
-        .meta-badge.difficulty { color: var(--accent); border-color: rgba(34, 197, 94, 0.3); }
+        .meta-badge.difficulty { color: var(--warning); border-color: rgba(245, 158, 11, 0.3); }
 
         /* --- LAYOUT GRID --- */
         .layout-grid {
@@ -120,6 +122,7 @@
             position: relative;
         }
 
+        /* --- STICKY SIDEBAR --- */
         .sidebar {
             position: sticky;
             top: 40px;
@@ -151,47 +154,28 @@
             background: rgba(34, 197, 94, 0.05);
         }
 
-        /* --- CONTENT STYLES --- */
+        /* --- MAIN CONTENT --- */
+        main section {
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
         main h2 { 
             font-size: 1.8rem; 
-            margin: 0 0 10px; 
+            margin: 0 0 20px; 
             color: var(--text-main); 
             display: flex;
             align-items: center;
             gap: 10px;
             scroll-margin-top: 100px;
         }
-
-        .btn-sim {
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: var(--font-code);
-            font-size: 0.8rem;
-            margin-bottom: 25px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: bold;
-            text-decoration: none;
-        }
-        .btn-sim:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent-glow); }
-
-        main section {
-            margin-bottom: 60px;
-            padding-bottom: 40px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        h3 { font-size: 1.3rem; margin: 30px 0 10px; color: var(--text-main); }
+        h3 { font-size: 1.3rem; margin: 30px 0 15px; color: var(--text-main); }
         p { margin-bottom: 20px; color: var(--text-muted); font-size: 1.05rem; }
+        
+        ul, ol { margin-bottom: 20px; padding-left: 25px; color: var(--text-muted); }
+        li { margin-bottom: 10px; }
 
+        /* --- TERMINAL & CODE --- */
         .terminal {
             background: #0d1117;
             border: 1px solid var(--border);
@@ -201,47 +185,107 @@
             font-family: var(--font-code);
             font-size: 0.9rem;
             color: #c9d1d9;
+            overflow-x: auto;
         }
         .terminal-header { display: flex; gap: 6px; margin-bottom: 15px; }
         .dot { width: 10px; height: 10px; border-radius: 50%; }
         .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
         .cmd { color: var(--accent); }
+        .comment { color: var(--text-muted); opacity: 0.7; }
 
         /* --- TABLES --- */
         .table-container { overflow-x: auto; margin: 25px 0; border: 1px solid var(--border); border-radius: var(--radius); }
         table { width: 100%; border-collapse: collapse; background: var(--bg-card); }
-        th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); border-bottom: 1px solid var(--border); }
-        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.9rem; }
+        th { text-align: left; padding: 15px; background: rgba(0,0,0,0.2); color: var(--accent); border-bottom: 1px solid var(--border); font-family: var(--font-code); font-size: 0.9rem; }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-muted); font-size: 0.95rem; }
+        code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-family: var(--font-code); color: var(--accent); font-size: 0.9em; }
 
-        /* --- SPECIAL BOXES --- */
-        .hackers-note {
-            background: rgba(139, 92, 246, 0.08);
-            border-left: 4px solid var(--purple);
+        /* --- BOXES --- */
+        .info-box {
+            background: rgba(30, 41, 59, 0.5);
+            border-left: 4px solid var(--accent);
             padding: 20px;
             border-radius: 0 var(--radius) var(--radius) 0;
             margin: 25px 0;
         }
-        .hackers-note h4 { color: var(--purple); margin-bottom: 5px; font-size: 1rem; }
+        .info-box h4 { margin: 0 0 10px; color: var(--text-main); font-size: 1rem; }
 
         .security-check {
-            background: rgba(245, 158, 11, 0.05);
-            border: 1px solid rgba(245, 158, 11, 0.3);
-            border-radius: var(--radius);
-            padding: 15px 20px;
-            margin: 25px 0;
-            display: flex;
-            gap: 15px;
-        }
-        .sc-content h4 { color: var(--warning); margin-bottom: 5px; font-size: 1rem; }
-
-        .mini-lab {
-            background: rgba(34, 197, 94, 0.05);
-            border: 1px dashed var(--accent);
+            background: rgba(139, 92, 246, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.3);
             border-radius: var(--radius);
             padding: 20px;
             margin: 25px 0;
         }
-        .mini-lab h4 { color: var(--accent); margin-bottom: 10px; font-size: 1rem; }
+        .security-check h4 { color: var(--purple); margin: 0 0 10px; font-size: 1.1rem; }
+
+        /* --- SIMULATION/LAB BUTTONS --- */
+        .mini-lab {
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px dashed var(--accent);
+            border-radius: var(--radius);
+            padding: 25px;
+            margin: 25px 0;
+        }
+        .mini-lab h4 { color: var(--text-main); margin-bottom: 10px; font-size: 1.1rem; }
+        
+        .btn-sim {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: var(--font-code);
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 5px;
+        }
+        .btn-sim:hover { 
+            background: var(--accent); 
+            color: #000; 
+            box-shadow: 0 0 15px var(--accent-glow); 
+            transform: translateY(-2px);
+        }
+
+        /* --- PRACTICE LAB --- */
+        .lab-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: var(--radius);
+            margin: 30px 0;
+        }
+        .lab-question {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .lab-question strong { color: var(--text-main); display: block; margin-bottom: 8px; }
+        
+        .btn-toggle {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+        .btn-toggle:hover { opacity: 0.9; transform: translateY(-1px); }
+        .answer-key { display: none; margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border); }
+        .answer-key.visible { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         .module-footer {
             margin-top: 40px;
@@ -277,130 +321,258 @@
     <div class="container">
         <nav class="top-nav">
             <a href="../index.html" class="back-link">← Back to Roadmap</a>
-            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 04</span>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 05</span>
         </nav>
 
         <header>
             <div class="module-meta">
-                <span class="meta-badge difficulty">Intermediate</span>
-                <span class="meta-badge">⏱ 90 Minutes</span>
-                <span class="meta-badge">Prereq: Subnetting</span>
+                <span class="meta-badge difficulty">Beginner → Intermediate</span>
+                <span class="meta-badge">⏱ 60–75 Minutes</span>
+                <span class="meta-badge">Layer 2 Fundamentals</span>
             </div>
             <h1>MAC & Local Networking</h1>
-            <p style="max-width: 700px;">Layer 2 is where digital logic meets physical hardware. To secure a LAN, you must master how frames are handled before they ever reach a router.</p>
+            <p style="max-width: 700px;">Layer 2 is where the digital meets the physical. Understand how devices find each other on a local wire using MAC addresses, ARP, and Switching logic.</p>
         </header>
 
         <div class="layout-grid">
             <aside class="sidebar">
                 <div class="toc">
                     <h4>On this page</h4>
-                    <a href="#mac">1. The MAC Address</a>
-                    <a href="#arp">2. ARP Fundamentals</a>
-                    <a href="#switching">3. Switching & CAM</a>
-                    <a href="#vlan">4. VLAN Segmentation</a>
-                    <a href="#attacks">5. L2 Attack Surfaces</a>
-                    <a href="#recap">📌 Module Recap</a>
+                    <a href="#mac-intro">1. What is a MAC?</a>
+                    <a href="#mac-struct">2. MAC Structure</a>
+                    <a href="#mac-ip">3. MAC vs IP</a>
+                    <a href="#arp">4. ARP Explained</a>
+                    <a href="#arp-cmds">5. ARP Commands</a>
+                    <a href="#switch">6. Switch Logic</a>
+                    <a href="#cast">7. Broadcast Types</a>
+                    <a href="#attacks">8. ARP Spoofing</a>
+                    <a href="#troubleshoot">9. Troubleshooting</a>
+                    <a href="#security">10. Security Context</a>
+                    <a href="#lab">🧪 Practice Lab</a>
                 </div>
             </aside>
 
             <main>
-                <!-- 1. MAC ADDRESS -->
-                <section id="mac">
-                    <h2>1. The MAC Address</h2>
-                    <p>A Media Access Control address is the hardware's unique fingerprint. While IP addresses change based on the network, the MAC is (usually) permanent and burnt into the NIC.</p>
-                    
-                    <div class="terminal">
-                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
-                        <span style="color: var(--text-muted);">// MAC Address Structure</span><br>
-                        <span style="color: var(--accent);">00:1A:2B</span> : <span style="color: var(--purple);">3C:4D:5E</span><br>
-                        <span style="font-size: 0.8rem; color: #64748b;">[-- OUI (Vendor ID) --] [-- NIC Specific --]</span>
-                    </div>
+                <!-- 1. WHAT IS A MAC -->
+                <section id="mac-intro">
+                    <h2>1. What Is a MAC Address?</h2>
+                    <p>A <strong>Media Access Control (MAC)</strong> address is a hardware identification number that uniquely identifies each device on a network. It is often referred to as the "Physical Address" or "Hardware Address."</p>
+                    <p>Unlike an IP address, which is assigned logically by software or a router, the MAC address is "burned in" to the Network Interface Card (NIC) by the manufacturer.</p>
+                </section>
 
-                    <div class="security-check">
-                        <div class="sc-content">
-                            <h4>🕵️ Recon Trick: OUI Lookup</h4>
-                            <p>By looking up the first 3 bytes (OUI) of a MAC address, hackers can identify the manufacturer (e.g., Apple, Cisco, or a specific IoT vendor) and look for known vulnerabilities in that hardware.</p>
+                <!-- 2. MAC STRUCTURE -->
+                <section id="mac-struct">
+                    <h2>2. MAC Address Structure</h2>
+                    <p>A MAC address is 48 bits long (6 bytes). It is split into two equal parts that tell you exactly who made the device and the specific ID of that device.</p>
+
+                    <div class="info-box">
+                        <div style="font-family: var(--font-code); font-size: 1.2rem; margin-bottom: 10px;">
+                            <span style="color: var(--purple);">00:1A:2B</span> : <span style="color: var(--accent);">3C:4D:5E</span>
                         </div>
+                        <p><strong>First 24 Bits (Purple):</strong> Organizationally Unique Identifier (OUI). This identifies the vendor (e.g., Apple, Dell, Cisco).</p>
+                        <p style="margin-bottom: 0;"><strong>Last 24 Bits (Green):</strong> Network Interface Controller (NIC) Specific. This is the unique serial number assigned by the vendor.</p>
                     </div>
                 </section>
 
-                <!-- 2. ARP FUNDAMENTALS -->
-                <section id="arp">
-                    <h2>2. ARP Fundamentals</h2>
-                    <a href="../sim/arp.html" class="btn-sim">Launch ARP Visualizer</a>
-                    <p>ARP (Address Resolution Protocol) is the glue between Layer 3 (IP) and Layer 2 (MAC). It functions on a "shout and listen" model.</p>
-                    
-                    <div class="terminal">
-                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
-                        <span class="cmd">root@kali:~#</span> arp -a<br>
-                        <span style="color: #64748b;">// Viewing the local ARP Cache</span><br>
-                        gateway (192.168.1.1) at 00:50:56:c0:00:08 [ether] on eth0<br>
-                        victim (192.168.1.10) at 00:0c:29:4f:8a:33 [ether] on eth0
-                    </div>
+                <!-- 3. MAC VS IP -->
+                <section id="mac-ip">
+                    <h2>3. MAC vs IP Comparison</h2>
+                    <p>Beginners often ask: "Why do we need two addresses?" The answer lies in the OSI model layers.</p>
 
-                    <div class="hackers-note">
-                        <h4>📦 The ARP Packet</h4>
-                        <p>ARP packets consist of an <strong>Opcode</strong> (1 for Request, 2 for Reply), a Sender IP/MAC, and a Target IP/MAC. They are trust-based; computers update their cache based on replies they never even asked for.</p>
-                    </div>
-                </section>
-
-                <!-- 3. SWITCHING & CAM -->
-                <section id="switching">
-                    <h2>3. Switching & CAM Tables</h2>
-                    <p>Switches use Content Addressable Memory (CAM) to map MAC addresses to physical ports. This is why switches are more secure than Hubs—they don't broadcast everything to everyone.</p>
-                    
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr><th>Port</th><th>MAC Address</th><th>VLAN</th></tr>
+                                <tr><th>Feature</th><th>MAC Address</th><th>IP Address</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td>Fa0/1</td><td>00:1A:2B:3C:4D:5E</td><td>10</td></tr>
-                                <tr><td>Fa0/2</td><td>AA:BB:CC:DD:EE:FF</td><td>10</td></tr>
-                                <tr><td>Fa0/3</td><td>00:0C:29:4F:8A:33</td><td>20</td></tr>
+                                <tr><td><strong>Layer</strong></td><td>Layer 2 (Data Link)</td><td>Layer 3 (Network)</td></tr>
+                                <tr><td><strong>Scope</strong></td><td>Local Network Only (LAN)</td><td>Internet Wide (WAN)</td></tr>
+                                <tr><td><strong>Type</strong></td><td>Physical (Hardware)</td><td>Logical (Software)</td></tr>
+                                <tr><td><strong>Changeable?</strong></td><td>Permanent (mostly)</td><td>Dynamic (Changes frequently)</td></tr>
+                                <tr><td><strong>Delivery</strong></td><td>Computer to Computer (Direct)</td><td>Network to Network (Routing)</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <p style="font-size: 0.9rem; color: var(--text-muted); text-align: center;">
+                        <em>Flow: Application → IP (Where are we going?) → MAC (Who is the next hop?) → Wire.</em>
+                    </p>
+                </section>
+
+                <!-- 4. ARP EXPLAINED -->
+                <section id="arp">
+                    <h2>4. ARP Explained</h2>
+                    <p><strong>Address Resolution Protocol (ARP)</strong> is the bridge between Layer 3 (IP) and Layer 2 (MAC). When your computer knows the destination IP but not the destination MAC, it uses ARP.</p>
+
+                    <div class="info-box">
+                        <h4>The ARP Conversation</h4>
+                        <ol style="margin-bottom: 0;">
+                            <li><strong>Device A:</strong> "I need to send data to <code>192.168.1.50</code>, but I don't know their MAC address."</li>
+                            <li><strong>Device A (Broadcast):</strong> "WHO HAS <code>192.168.1.50</code>? Tell <code>192.168.1.10</code>!"</li>
+                            <li><strong>Device B (192.168.1.50):</strong> "That's me! My MAC address is <code>AA:BB:CC:11:22:33</code>." (Unicast Reply)</li>
+                            <li><strong>Device A:</strong> Saves this pair (IP + MAC) in its <strong>ARP Table</strong> (Cache).</li>
+                        </ol>
+                    </div>
+
+                    <!-- SIMULATOR: ARP VISUALIZER -->
+                    <div class="mini-lab">
+                        <h4>🧪 ARP Visualizer</h4>
+                        <p>See how ARP broadcast and reply works step-by-step.</p>
+                        <a href="../sim/arp.html" class="btn-sim">Launch ARP Visualizer</a>
+                    </div>
+                </section>
+
+                <!-- 5. ARP COMMANDS -->
+                <section id="arp-cmds">
+                    <h2>5. ARP Table & Commands</h2>
+                    <p>Every device keeps a temporary list of IP-to-MAC mappings called the ARP Cache. You can view this cache on any OS.</p>
+
+                    <div class="terminal">
+                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+                        <span class="comment"># Linux Command</span><br>
+                        <span class="cmd">user@linux:~$</span> ip neigh<br>
+                        192.168.1.1 dev eth0 lladdr c0:25:a5:xx:xx:xx REACHABLE<br>
+                        <br>
+                        <span class="comment"># Windows Command</span><br>
+                        <span class="cmd">C:\Users\Admin></span> arp -a<br>
+                        Interface: 192.168.1.10 --- 0x3<br>
+                          Internet Address      Physical Address      Type<br>
+                          192.168.1.1           c0-25-a5-xx-xx-xx     dynamic
+                    </div>
+                </section>
+
+                <!-- 6. SWITCH LOGIC -->
+                <section id="switch">
+                    <h2>6. Switch MAC Learning</h2>
+                    <p>Switches are intelligent devices. They use a <strong>MAC Address Table</strong> (or CAM Table) to map physical ports to MAC addresses.</p>
+                    
+                    <ul style="margin-top: 15px;">
+                        <li><strong>Learning:</strong> When a frame enters a port, the switch records the <em>Source MAC</em> and the <em>Port Number</em>.</li>
+                        <li><strong>Forwarding:</strong> If the switch knows the destination MAC, it sends the frame <em>only</em> to that port (Unicast).</li>
+                        <li><strong>Flooding:</strong> If the destination MAC is unknown, the switch sends the frame to <em>all</em> ports (except the source).</li>
+                    </ul>
+
+                    <!-- SIMULATOR: SWITCH MAC TABLE -->
+                    <div class="mini-lab">
+                        <h4>🧪 Switch MAC Table Simulator</h4>
+                        <p>Simulate how a switch learns MAC addresses and populates its CAM table.</p>
+                        <a href="../sim/switch-mac-table.html" class="btn-sim">Launch Switch Simulator</a>
+                    </div>
+                </section>
+
+                <!-- 7. BROADCAST TYPES -->
+                <section id="cast">
+                    <h2>7. Broadcast vs Unicast vs Multicast</h2>
+                    <p>How data travels depends on who needs to hear it.</p>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Type</th><th>Destination MAC</th><th>Who hears it?</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><strong>Unicast</strong></td><td>Specific MAC (e.g., 00:1A...)</td><td>One specific device.</td></tr>
+                                <tr><td><strong>Multicast</strong></td><td>Special Range (e.g., 01:00:5E...)</td><td>A subscribed group of devices.</td></tr>
+                                <tr><td><strong>Broadcast</strong></td><td><code>FF:FF:FF:FF:FF:FF</code></td><td><strong>Everyone</strong> on the local network.</td></tr>
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="security-check">
-                        <div class="sc-content">
-                            <h4>🛡️ Port Security</h4>
-                            <p>Enterprise switches use "Port Security" to limit the number of MACs on a port. If a hacker plugs in a rogue device, the switch can automatically shut the port down.</p>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- 4. VLAN SEGMENTATION -->
-                <section id="vlan">
-                    <h2>4. VLAN Segmentation</h2>
-                    <a href="../sim/vlan.html" class="btn-sim">Launch VLAN Visualizer</a>
-                    <p>Virtual LANs create logical boundaries on a single physical switch. This prevents users in the "Guest Wi-Fi" from sniffing traffic in the "Server Room."</p>
-                    
-                    <div class="terminal">
-                        <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
-                        Managed Switch Layout:<br>
-                        ├── <span style="color: var(--accent);">VLAN 10</span> (HR / Employee Data)<br>
-                        ├── <span style="color: var(--warning);">VLAN 20</span> (Guest Wi-Fi / Untrusted)<br>
-                        └── <span style="color: var(--danger);">VLAN 30</span> (Database Servers / Restricted)
-                    </div>
-                </section>
-
-                <!-- 5. ATTACK SURFACES -->
-                <section id="attacks">
-                    <h2>5. L2 Attack Surfaces</h2>
-                    <p>Because Layer 2 was designed for trust, it is highly susceptible to impersonation and flooding attacks.</p>
-
-                    <h3>ARP Spoofing (Man-in-the-Middle)</h3>
-                    <p>The attacker tells the Victim "I am the Gateway" and tells the Gateway "I am the Victim." Traffic now flows through the attacker's machine.</p>
-
-                    <h3>MAC Flooding</h3>
-                    <p>The attacker fills the CAM table with thousands of fake MAC addresses. When the table is full, most switches "Fail Open" and start acting like a Hub, broadcasting all traffic to all ports.</p>
-
+                    <!-- SIMULATOR: FRAME DELIVERY -->
                     <div class="mini-lab">
-                        <h4>🧪 Tool Spotlight: Bettercap</h4>
-                        <p>Modern pentesters use <code>bettercap</code> to automate ARP spoofing. <br>
-                        Command: <code>arp.spoof on; net.sniff on</code>. <br>
-                        <em>Warning: Only perform this in a controlled lab environment.</em></p>
+                        <h4>🧪 Frame Delivery Visualizer</h4>
+                        <p>Visualize the difference between Broadcast, Unicast, and Multicast delivery.</p>
+                        <a href="../sim/frame-delivery.html" class="btn-sim">Launch Delivery Visualizer</a>
+                    </div>
+                </section>
+
+                <!-- 8. ARP SPOOFING -->
+                <section id="attacks">
+                    <h2>8. ARP Spoofing & Attacks</h2>
+                    <p>ARP was designed in the 1980s based on trust. It has no authentication. This leads to <strong>ARP Poisoning</strong> (or Spoofing).</p>
+                    
+                    <div class="security-check">
+                        <h4>⚠️ Man-in-the-Middle (MITM)</h4>
+                        <p>An attacker can send fake ARP replies to the victim and the gateway.</p>
+                        <p><strong>To Victim:</strong> "I am the Router."<br>
+                        <strong>To Router:</strong> "I am the Victim."</p>
+                        <p>Now, all traffic flows through the attacker's machine, allowing them to steal passwords or modify data before forwarding it.</p>
+                    </div>
+
+                    <h3>Defenses</h3>
+                    <p>Enterprises use <strong>Dynamic ARP Inspection (DAI)</strong> and port security to prevent these attacks. In static environments, administrators might manually define static ARP entries.</p>
+                </section>
+
+                <!-- 9. TROUBLESHOOTING -->
+                <section id="troubleshoot">
+                    <h2>9. Real-World Troubleshooting</h2>
+                    <p>When devices on a LAN cannot talk, check Layer 2 first.</p>
+                    
+                    <div class="info-box">
+                        <h4>🔍 Connectivity Checklist</h4>
+                        <ul style="margin-bottom: 0;">
+                            <li><strong>Physical Link:</strong> Are the lights on the switch port blinking?</li>
+                            <li><strong>Same Subnet:</strong> Are both IPs in the same range? (e.g., 192.168.1.x)</li>
+                            <li><strong>ARP Entry:</strong> Run <code>arp -a</code>. Do you see the target's MAC?</li>
+                            <li><strong>Duplicate IP:</strong> If two devices have the same IP, ARP will flap between two MACs, causing connection drops.</li>
+                            <li><strong>Broadcast Storm:</strong> Is the network slow? A loop might be causing endless broadcasts.</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- 10. SECURITY CONTEXT -->
+                <section id="security">
+                    <h2>10. 🛡️ Security Application</h2>
+                    <p>For pentesters, Layer 2 is the primary playground for local reconnaissance.</p>
+                    
+                    <h3>ARP Scanning</h3>
+                    <p>Instead of using Ping (ICMP), which firewalls often block, hackers use ARP to find live hosts. Since ARP creates no "connections," it is stealthier and works on all local devices.</p>
+                    <div class="terminal">
+                        <span class="cmd">root@kali:~#</span> arp-scan --localnet<br>
+                        Interface: eth0, datalink type: EN10MB (Ethernet)<br>
+                        192.168.1.1     c0:25:a5:xx:xx:xx   TP-Link Technologies<br>
+                        192.168.1.15    b8:27:eb:xx:xx:xx   Raspberry Pi Foundation
+                    </div>
+
+                    <!-- SIMULATOR: ARP SPOOFING DEMO -->
+                    <div class="mini-lab" style="border-color: var(--danger);">
+                        <h4 style="color: var(--danger);">🧪 ARP Spoofing Demo</h4>
+                        <p>Interact with a simulated MITM attack to understand how attackers poison the cache.</p>
+                        <a href="../sim/arp-spoof-demo.html" class="btn-sim" style="border-color: var(--danger); color: var(--danger);">Launch Spoofing Demo</a>
+                    </div>
+                </section>
+
+                <!-- 11. PRACTICE LAB -->
+                <section id="lab">
+                    <h2>🧪 MAC & ARP Practice</h2>
+                    <p>Test your understanding of Layer 2 concepts.</p>
+
+                    <div class="lab-box">
+                        <div class="lab-question">
+                            <strong>Q1: At which OSI layer does a MAC address operate?</strong>
+                        </div>
+                        <div class="lab-question">
+                            <strong>Q2: What is the broadcast MAC address?</strong>
+                        </div>
+                        <div class="lab-question">
+                            <strong>Q3: Which protocol resolves an IP address to a MAC address?</strong>
+                        </div>
+                        <div class="lab-question">
+                            <strong>Q4: Why is ARP spoofing possible?</strong>
+                        </div>
+                        <div class="lab-question">
+                            <strong>Q5: What command shows the ARP table in Windows?</strong>
+                        </div>
+
+                        <button class="btn-toggle" onclick="toggleAnswers()">Show Answers</button>
+
+                        <div id="answers" class="answer-key">
+                            <p><strong>A1:</strong> Layer 2 (Data Link Layer).</p>
+                            <p><strong>A2:</strong> FF:FF:FF:FF:FF:FF</p>
+                            <p><strong>A3:</strong> ARP (Address Resolution Protocol).</p>
+                            <p><strong>A4:</strong> Because ARP has no authentication mechanism (it trusts all replies).</p>
+                            <p><strong>A5:</strong> <code>arp -a</code></p>
+                        </div>
                     </div>
                 </section>
 
@@ -409,18 +581,18 @@
                     <div class="recap-box" style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
                         <h3>📌 Module Recap</h3>
                         <ul style="padding-left: 20px;">
-                            <li style="margin-bottom: 10px;"><strong>MAC Addresses</strong> are physical IDs used for communication inside a LAN.</li>
-                            <li style="margin-bottom: 10px;"><strong>ARP</strong> resolves IP addresses to MAC addresses and is easily spoofed.</li>
-                            <li style="margin-bottom: 10px;"><strong>Switches</strong> use CAM tables to route traffic efficiently.</li>
-                            <li style="margin-bottom: 10px;"><strong>VLANs</strong> are the primary tool for logical network isolation.</li>
-                            <li style="margin-bottom: 10px;"><strong>L2 Attacks</strong> focus on sniffing data and breaking network segmentation.</li>
+                            <li><strong>MAC Address:</strong> Physical, permanent ID (Layer 2). Vendor identified by OUI.</li>
+                            <li><strong>IP Address:</strong> Logical, changeable ID (Layer 3). Used for routing.</li>
+                            <li><strong>ARP:</strong> The protocol that maps IP → MAC using "Who has?" broadcasts.</li>
+                            <li><strong>Switching:</strong> Switches learn MACs to direct traffic precisely (Unicast) instead of shouting (Broadcast).</li>
+                            <li><strong>Security:</strong> ARP is vulnerable to spoofing, allowing Man-in-the-Middle attacks.</li>
                         </ul>
                     </div>
                 </section>
 
                 <!-- FOOTER NAV -->
                 <div class="module-footer">
-                    <a href="03-subnetting.html" class="back-link">← Previous Module</a>
+                    <a href="04-subnetting.html" class="back-link">← Previous Module</a>
                     <div>
                         <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">Next: DNS & Name Resolution</div>
                         <a href="06-dns.html" class="btn-next">Next Module →</a>
@@ -456,9 +628,22 @@
         }, { threshold: 0.3 });
         sections.forEach(section => observer.observe(section));
 
-        // Progress Tracking
+        // Lab Answer Toggle
+        function toggleAnswers() {
+            const key = document.getElementById('answers');
+            const btn = document.querySelector('.btn-toggle');
+            if (key.classList.contains('visible')) {
+                key.classList.remove('visible');
+                btn.textContent = "Show Answers";
+            } else {
+                key.classList.add('visible');
+                btn.textContent = "Hide Answers";
+            }
+        }
+
+        // Progress Tracking (Module 5)
         window.onload = function() {
-            const MODULE_ID = 3; 
+            const MODULE_ID = 5; 
             let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
             if(!savedProgress.includes(MODULE_ID)) {
                 savedProgress.push(MODULE_ID);
