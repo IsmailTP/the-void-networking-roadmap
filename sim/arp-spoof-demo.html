@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | Enterprise ARP Attack Sim</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- PROFESSIONAL THEME --- */
+        :root {
+            --bg-body: #0b0f19;        
+            --bg-panel: #111827;
+            --bg-header: #1f2937;
+            --border: #374151;
+            
+            --text-main: #f3f4f6;      
+            --text-muted: #9ca3af;
+            
+            --col-normal: #3b82f6;    /* Blue for legitimate traffic */
+            --col-attack: #ef4444;    /* Red for malicious traffic */
+            --col-accent: #10b981;    /* Green for success/secure */
+            
+            --font-ui: 'Inter', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+            
+            --radius: 6px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- TOP BAR --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.5px; }
+        .back-link { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+        .back-link:hover { color: var(--col-normal); }
+
+        /* --- MAIN GRID --- */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+            height: calc(100vh - 100px);
+            min-height: 600px;
+        }
+
+        @media (max-width: 1024px) {
+            .layout-grid { grid-template-columns: 1fr; height: auto; }
+        }
+
+        /* --- LEFT: TOPOLOGY --- */
+        .topology-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .canvas-area {
+            flex: 1;
+            position: relative;
+            background-image: radial-gradient(#374151 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow: hidden; /* Prevents overflow during resize */
+        }
+
+        /* --- NODES --- */
+        .node {
+            position: absolute;
+            width: 220px;
+            background: #1f2937;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0;
+            z-index: 10;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .node-header {
+            background: #111827;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        
+        .node-title { font-weight: 600; font-size: 0.9rem; color: var(--text-main); }
+        .node-icon { color: var(--text-muted); font-size: 1rem; }
+        
+        .node-body { padding: 10px; }
+        .interface-detail {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+        }
+        .val { color: var(--col-accent); }
+        .val.compromised { color: var(--col-attack); }
+
+        .arp-cache {
+            margin-top: 8px;
+            background: #000;
+            border: 1px solid var(--border);
+            padding: 6px;
+            border-radius: 4px;
+        }
+        .arp-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            border-bottom: 1px dashed #333;
+            padding: 2px 0;
+        }
+        .arp-row:last-child { border-bottom: none; }
+        .arp-row span:last-child { color: var(--col-normal); }
+        .arp-row.poisoned span:last-child { color: var(--col-attack); font-weight: bold; }
+
+        /* Node Positions */
+        #node-victim { top: 60px; left: 60px; border-top: 3px solid var(--col-normal); }
+        #node-router { top: 60px; right: 60px; border-top: 3px solid var(--col-normal); }
+        #node-attacker { bottom: 60px; left: 50%; transform: translateX(-50%); border-top: 3px solid var(--col-attack); }
+
+        /* --- CABLES & PACKETS --- */
+        .cables-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .cable-line { stroke: #4b5563; stroke-width: 2; opacity: 0.5; }
+
+        .packet {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: var(--col-normal);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            z-index: 20;
+            box-shadow: 0 0 10px var(--col-normal);
+            display: none;
+            will-change: top, left; /* Performance optimization */
+        }
+        .packet.malicious { background: var(--col-attack); box-shadow: 0 0 10px var(--col-attack); }
+
+        /* --- RIGHT: CONTROL & ANALYTICS --- */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-box {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ctrl-header {
+            background: #1f2937;
+            padding: 10px 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Packet Inspector */
+        .inspector-content {
+            padding: 15px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .insp-row { display: grid; grid-template-columns: 80px 1fr; margin-bottom: 6px; }
+        .insp-label { color: var(--text-muted); }
+        .insp-val { color: var(--text-main); }
+        .insp-val.highlight { color: var(--col-attack); }
+
+        /* Step Controls */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 15px;
+        }
+        .btn-ctrl {
+            background: #1f2937;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .btn-ctrl:hover:not(:disabled) { background: #374151; color: var(--text-main); border-color: var(--text-muted); }
+        .btn-ctrl:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-ctrl.primary { border-left: 3px solid var(--col-normal); }
+        .btn-ctrl.danger { border-left: 3px solid var(--col-attack); }
+        .btn-ctrl.active { background: #374151; color: #fff; }
+
+        /* Packet Capture Table */
+        .pcap-container {
+            flex: 1;
+            overflow: auto;
+            background: #000;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            max-height: 300px;
+        }
+        .pcap-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--text-muted);
+        }
+        .pcap-table th {
+            text-align: left;
+            background: #111;
+            padding: 6px 10px;
+            position: sticky;
+            top: 0;
+            border-bottom: 1px solid #333;
+            color: var(--text-main);
+            z-index: 5;
+        }
+        .pcap-table td {
+            padding: 4px 10px;
+            border-bottom: 1px solid #222;
+        }
+        .pcap-row-normal { color: #60a5fa; }
+        .pcap-row-arp { color: #fbbf24; }
+        .pcap-row-attack { color: #f87171; background: rgba(239, 68, 68, 0.1); }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div style="display:flex; align-items:center; gap: 15px;">
+                <h1>ARP Attack Simulation</h1>
+                <span style="background:var(--bg-panel); border:1px solid var(--border); padding:4px 10px; border-radius:4px; font-size:0.75rem; color:var(--text-muted);">v2.1 Stable</span>
+            </div>
+            <a href="#" class="back-link" onclick="location.reload()">Reload Sim</a>
+        </header>
+
+        <div class="layout-grid">
+            
+            <div class="topology-panel" id="topologyPanel">
+                <div class="panel-header">
+                    <span>Network Topology</span>
+                    <span id="status-indicator" style="color: var(--col-accent);">● SECURE</span>
+                </div>
+                
+                <div class="canvas-area" id="canvasArea">
+                    <svg class="cables-svg" id="cablesSvg"></svg>
+
+                    <div class="node" id="node-victim">
+                        <div class="node-header">
+                            <span class="node-icon">💻</span>
+                            <span class="node-title">Victim Workstation</span>
+                        </div>
+                        <div class="node-body">
+                            <div class="interface-detail"><span>IP:</span> <span class="val">192.168.1.10</span></div>
+                            <div class="interface-detail"><span>MAC:</span> <span class="val">AA:AA:AA:AA:AA:AA</span></div>
+                            <div style="margin-top:8px; font-size:0.7rem; color:#6b7280; font-weight:600;">ARP TABLE</div>
+                            <div class="arp-cache">
+                                <div class="arp-row" id="arp-v-gw">
+                                    <span>192.168.1.1</span>
+                                    <span id="val-v-gw">RR:RR:RR:RR:RR:RR</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="node" id="node-router">
+                        <div class="node-header">
+                            <span class="node-icon">📡</span>
+                            <span class="node-title">Gateway Router</span>
+                        </div>
+                        <div class="node-body">
+                            <div class="interface-detail"><span>IP:</span> <span class="val">192.168.1.1</span></div>
+                            <div class="interface-detail"><span>MAC:</span> <span class="val">RR:RR:RR:RR:RR:RR</span></div>
+                            <div style="margin-top:8px; font-size:0.7rem; color:#6b7280; font-weight:600;">ARP TABLE</div>
+                            <div class="arp-cache">
+                                <div class="arp-row" id="arp-r-vic">
+                                    <span>192.168.1.10</span>
+                                    <span id="val-r-vic">AA:AA:AA:AA:AA:AA</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="node" id="node-attacker">
+                        <div class="node-header" style="background: rgba(239, 68, 68, 0.1);">
+                            <span class="node-icon" style="color:var(--col-attack);">💀</span>
+                            <span class="node-title" style="color:var(--col-attack);">Kali Linux</span>
+                        </div>
+                        <div class="node-body">
+                            <div class="interface-detail"><span>IP:</span> <span class="val">192.168.1.66</span></div>
+                            <div class="interface-detail"><span>MAC:</span> <span class="val" style="color:var(--col-attack);">66:66:66:66:66:66</span></div>
+                            <div style="margin-top:8px; font-size:0.7rem; color:#6b7280; font-weight:600;">TOOLS ACTIVE</div>
+                            <div class="interface-detail"><span>arpspoof:</span> <span class="val" id="tool-status">IDLE</span></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="control-panel">
+                
+                <div class="panel-box">
+                    <div class="ctrl-header">ATTACK SEQUENCE</div>
+                    <div class="controls-grid">
+                        <button class="btn-ctrl primary" onclick="simNormal()">1. Normal Traffic</button>
+                        <button class="btn-ctrl danger" onclick="simPoisonVictim()">2. Poison Victim</button>
+                        <button class="btn-ctrl danger" onclick="simPoisonRouter()">3. Poison Router</button>
+                        <button class="btn-ctrl danger" id="btn-mitm" onclick="simMITM()" disabled>4. MITM Traffic</button>
+                        <button class="btn-ctrl" style="grid-column: span 2; text-align:center;" onclick="resetSim()">RESET SIMULATION</button>
+                    </div>
+                </div>
+
+                <div class="panel-box">
+                    <div class="ctrl-header">FRAME INSPECTOR (LIVE)</div>
+                    <div class="inspector-content" id="inspector">
+                        <div class="insp-row"><span class="insp-label">Type:</span> <span class="insp-val">-</span></div>
+                        <div class="insp-row"><span class="insp-label">Src MAC:</span> <span class="insp-val">-</span></div>
+                        <div class="insp-row"><span class="insp-label">Dst MAC:</span> <span class="insp-val">-</span></div>
+                        <div class="insp-row"><span class="insp-label">Payload:</span> <span class="insp-val">-</span></div>
+                    </div>
+                </div>
+
+                <div class="panel-box" style="flex: 1;">
+                    <div class="ctrl-header">TRAFFIC CAPTURE</div>
+                    <div class="pcap-container">
+                        <table class="pcap-table" id="pcapTable">
+                            <thead>
+                                <tr>
+                                    <th width="50">No.</th>
+                                    <th width="80">Time</th>
+                                    <th width="90">Source</th>
+                                    <th width="90">Dest</th>
+                                    <th>Info</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pcapBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- STATE --- */
+        let state = {
+            poisonedVictim: false,
+            poisonedRouter: false,
+            pcapCount: 0,
+            animating: false,
+            activeTimers: [] // To clean up on reset
+        };
+
+        const nodes = {
+            victim: document.getElementById('node-victim'),
+            router: document.getElementById('node-router'),
+            attacker: document.getElementById('node-attacker')
+        };
+
+        /* --- DRAW CABLES --- */
+        function drawCables() {
+            const svg = document.getElementById('cablesSvg');
+            const canvas = document.getElementById('canvasArea');
+            const rect = canvas.getBoundingClientRect();
+            svg.innerHTML = ''; // Clear old lines
+
+            const getCenter = (el) => {
+                const r = el.getBoundingClientRect();
+                return { 
+                    x: r.left + r.width/2 - rect.left, 
+                    y: r.top + r.height/2 - rect.top 
+                };
+            };
+
+            const pV = getCenter(nodes.victim);
+            const pR = getCenter(nodes.router);
+            const pA = getCenter(nodes.attacker);
+
+            // Draw center switch point
+            const pSwitch = { x: rect.width / 2, y: rect.height / 2 };
+
+            drawLine(svg, pV, pSwitch);
+            drawLine(svg, pR, pSwitch);
+            drawLine(svg, pA, pSwitch);
+        }
+
+        function drawLine(svg, p1, p2) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', p1.x); 
+            line.setAttribute('y1', p1.y);
+            line.setAttribute('x2', p2.x); 
+            line.setAttribute('y2', p2.y);
+            line.classList.add('cable-line');
+            svg.appendChild(line);
+        }
+
+        window.addEventListener('resize', drawCables);
+        window.addEventListener('load', drawCables);
+
+        /* --- TIMER UTILS --- */
+        function safeTimeout(fn, delay) {
+            const id = setTimeout(fn, delay);
+            state.activeTimers.push(id);
+            return id;
+        }
+
+        function clearAllTimers() {
+            state.activeTimers.forEach(id => clearTimeout(id));
+            state.activeTimers = [];
+        }
+
+        /* --- LOGIC: NORMAL TRAFFIC --- */
+        function simNormal() {
+            if (state.animating) return;
+            state.animating = true;
+            
+            updateInspector('HTTP', 'AA:AA:AA..', 'RR:RR:RR..', 'GET /index.html');
+            
+            // Check routing
+            const isPoisoned = state.poisonedVictim;
+            const destNode = isPoisoned ? nodes.attacker : nodes.router;
+
+            animatePacket(nodes.victim, destNode, isPoisoned, () => {
+                
+                if(isPoisoned) {
+                    // Traffic intercepted (DoS or waiting for MITM)
+                    addPcap('192.168.1.10', '192.168.1.66', 'HTTP', 'GET /index.html [INTERCEPTED]', 'attack');
+                    updateToolStatus("PACKET CAPTURED");
+                    state.animating = false;
+                } else {
+                    // Normal flow
+                    addPcap('192.168.1.10', '192.168.1.1', 'HTTP', 'GET /index.html', 'normal');
+                    // Reply
+                    safeTimeout(() => {
+                        updateInspector('HTTP', 'RR:RR:RR..', 'AA:AA:AA..', '200 OK');
+                        animatePacket(nodes.router, nodes.victim, false, () => {
+                            addPcap('192.168.1.1', '192.168.1.10', 'HTTP', '200 OK (text/html)', 'normal');
+                            state.animating = false;
+                        });
+                    }, 500);
+                }
+            });
+        }
+
+        /* --- LOGIC: POISON VICTIM --- */
+        function simPoisonVictim() {
+            if (state.animating) return;
+            state.animating = true;
+            updateToolStatus("SPOOFING");
+
+            updateInspector('ARP', '66:66:66..', 'AA:AA:AA..', 'is-at 192.168.1.1');
+
+            animatePacket(nodes.attacker, nodes.victim, true, () => {
+                // UI Update
+                document.getElementById('val-v-gw').innerText = "66:66:66:66:66:66";
+                document.getElementById('arp-v-gw').classList.add('poisoned');
+                state.poisonedVictim = true;
+                
+                addPcap('66:66:66..', 'AA:AA:AA..', 'ARP', '192.168.1.1 is at 66:66:66:66:66:66 (Duplicate IP)', 'arp');
+                checkMITM();
+                state.animating = false;
+            });
+        }
+
+        /* --- LOGIC: POISON ROUTER --- */
+        function simPoisonRouter() {
+            if (state.animating) return;
+            state.animating = true;
+            updateToolStatus("SPOOFING");
+
+            updateInspector('ARP', '66:66:66..', 'RR:RR:RR..', 'is-at 192.168.1.10');
+
+            animatePacket(nodes.attacker, nodes.router, true, () => {
+                // UI Update
+                document.getElementById('val-r-vic').innerText = "66:66:66:66:66:66";
+                document.getElementById('arp-r-vic').classList.add('poisoned');
+                state.poisonedRouter = true;
+                
+                addPcap('66:66:66..', 'RR:RR:RR..', 'ARP', '192.168.1.10 is at 66:66:66:66:66:66 (Duplicate IP)', 'arp');
+                checkMITM();
+                state.animating = false;
+            });
+        }
+
+        /* --- LOGIC: MITM --- */
+        function simMITM() {
+            if (state.animating) return;
+            state.animating = true;
+
+            // Step 1: Victim -> Attacker
+            updateInspector('HTTP', 'AA:AA:AA..', '66:66:66..', 'POST /login user=admin');
+            
+            animatePacket(nodes.victim, nodes.attacker, true, () => {
+                addPcap('192.168.1.10', '192.168.1.1', 'HTTP', 'POST /login (Creds Stolen)', 'attack');
+                
+                // Step 2: Attacker -> Router (Forward)
+                safeTimeout(() => {
+                    updateInspector('HTTP', '66:66:66..', 'RR:RR:RR..', 'Forwarding Frame');
+                    animatePacket(nodes.attacker, nodes.router, true, () => {
+                        
+                        // Step 3: Reply Router -> Attacker
+                        safeTimeout(() => {
+                            updateInspector('HTTP', 'RR:RR:RR..', '66:66:66..', '200 OK');
+                            animatePacket(nodes.router, nodes.attacker, true, () => {
+                                
+                                // Step 4: Forward Attacker -> Victim
+                                safeTimeout(() => {
+                                    animatePacket(nodes.attacker, nodes.victim, true, () => {
+                                        addPcap('192.168.1.1', '192.168.1.10', 'HTTP', '200 OK', 'attack');
+                                        state.animating = false;
+                                    });
+                                }, 400);
+                            });
+                        }, 400);
+                    });
+                }, 400);
+            });
+        }
+
+        /* --- HELPERS --- */
+        function animatePacket(fromEl, toEl, isMalicious, cb) {
+            const canvas = document.getElementById('canvasArea');
+            const rect = canvas.getBoundingClientRect();
+            
+            const pkt = document.createElement('div');
+            pkt.className = 'packet';
+            if (isMalicious) pkt.classList.add('malicious');
+            canvas.appendChild(pkt);
+
+            const getPos = (el) => {
+                const r = el.getBoundingClientRect();
+                return { x: r.left + r.width/2 - rect.left - 7, y: r.top + r.height/2 - rect.top - 7 };
+            };
+
+            const start = getPos(fromEl);
+            const end = getPos(toEl);
+
+            // Center (Switch) pivot
+            const pivot = { x: rect.width/2 - 7, y: rect.height/2 - 7 };
+
+            // Initialize Position
+            pkt.style.left = start.x + 'px';
+            pkt.style.top = start.y + 'px';
+            pkt.style.display = 'block';
+
+            // CRITICAL FIX: Force Reflow to ensure start position renders before transition
+            void pkt.offsetWidth; 
+
+            // Leg 1: To Switch
+            pkt.style.transition = 'all 0.6s linear';
+            requestAnimationFrame(() => {
+                pkt.style.left = pivot.x + 'px';
+                pkt.style.top = pivot.y + 'px';
+            });
+
+            // Leg 2: To Dest
+            safeTimeout(() => {
+                pkt.style.left = end.x + 'px';
+                pkt.style.top = end.y + 'px';
+                safeTimeout(() => {
+                    pkt.remove();
+                    if(cb) cb();
+                }, 600);
+            }, 600);
+        }
+
+        function addPcap(src, dst, proto, info, type) {
+            state.pcapCount++;
+            const tbody = document.getElementById('pcapBody');
+            const row = document.createElement('tr');
+            
+            const time = new Date().toLocaleTimeString('en-US', {hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit"}) + "." + Math.floor(Math.random()*999);
+            
+            if(type === 'normal') row.className = 'pcap-row-normal';
+            if(type === 'arp') row.className = 'pcap-row-arp';
+            if(type === 'attack') row.className = 'pcap-row-attack';
+
+            row.innerHTML = `
+                <td>${state.pcapCount}</td>
+                <td>${time}</td>
+                <td>${src}</td>
+                <td>${dst}</td>
+                <td><strong>${proto}</strong> ${info}</td>
+            `;
+            
+            tbody.insertBefore(row, tbody.firstChild);
+        }
+
+        function updateInspector(type, src, dst, payload) {
+            const div = document.getElementById('inspector');
+            div.innerHTML = `
+                <div class="insp-row"><span class="insp-label">Type:</span> <span class="insp-val">${type}</span></div>
+                <div class="insp-row"><span class="insp-label">Src MAC:</span> <span class="insp-val">${src}</span></div>
+                <div class="insp-row"><span class="insp-label">Dst MAC:</span> <span class="insp-val">${dst}</span></div>
+                <div class="insp-row"><span class="insp-label">Payload:</span> <span class="insp-val highlight">${payload}</span></div>
+            `;
+        }
+
+        function updateToolStatus(status) {
+            const el = document.getElementById('tool-status');
+            el.innerText = status;
+            el.style.color = (status === 'IDLE') ? '#9ca3af' : '#ef4444';
+        }
+
+        function checkMITM() {
+            if (state.poisonedVictim && state.poisonedRouter) {
+                document.getElementById('btn-mitm').disabled = false;
+                const ind = document.getElementById('status-indicator');
+                ind.innerText = "● COMPROMISED";
+                ind.style.color = "var(--col-attack)";
+                updateToolStatus("MITM READY");
+            }
+        }
+
+        function resetSim() {
+            // STOP ANIMATIONS
+            clearAllTimers();
+            
+            // Remove floating packets
+            document.querySelectorAll('.packet').forEach(p => p.remove());
+
+            state = { poisonedVictim: false, poisonedRouter: false, pcapCount: 0, animating: false, activeTimers: [] };
+            
+            document.getElementById('val-v-gw').innerText = "RR:RR:RR:RR:RR:RR";
+            document.getElementById('arp-v-gw').classList.remove('poisoned');
+            
+            document.getElementById('val-r-vic').innerText = "AA:AA:AA:AA:AA:AA";
+            document.getElementById('arp-r-vic').classList.remove('poisoned');
+            
+            document.getElementById('btn-mitm').disabled = true;
+            document.getElementById('pcapBody').innerHTML = '';
+            
+            const ind = document.getElementById('status-indicator');
+            ind.innerText = "● SECURE";
+            ind.style.color = "var(--col-accent)";
+            
+            updateInspector('-', '-', '-', '-');
+            updateToolStatus("IDLE");
+        }
+
+    </script>
+</body>
+</html>
