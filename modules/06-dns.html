@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO METADATA -->
-    <meta name="description" content="Master DNS Fundamentals: Learn how name resolution works, record types (A, MX, TXT), and how to use dig and nslookup for network reconnaissance.">
-    <meta name="keywords" content="DNS, Domain Name System, A Record, MX Record, CNAME, TXT Record, dig, nslookup, DNS Poisoning, DNS Tunneling">
+    <meta name="description" content="Master DNS Fundamentals: Learn how name resolution works, record types (A, MX, TXT), hierarchical structure, and how to use dig/nslookup for reconnaissance.">
+    <meta name="keywords" content="DNS, Domain Name System, A Record, MX Record, CNAME, TXT Record, dig, nslookup, DNS Poisoning, DNS Tunneling, Zone Transfer">
     <meta name="author" content="The Void">
     
-    <title>The Void | DNS & Name Resolution</title>
+    <title>The Void | Module 06 - DNS & Name Resolution</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -190,6 +190,8 @@
 
         h3 { font-size: 1.3rem; margin: 30px 0 10px; color: var(--text-main); }
         p { margin-bottom: 20px; color: var(--text-muted); font-size: 1.05rem; }
+        ul, ol { margin-bottom: 20px; margin-left: 20px; color: var(--text-muted); }
+        li { margin-bottom: 8px; }
 
         .terminal {
             background: #0d1117;
@@ -241,6 +243,12 @@
             margin: 25px 0;
         }
         .mini-lab h4 { color: var(--accent); margin-bottom: 10px; font-size: 1rem; }
+
+        /* QA Toggle for Lab */
+        .qa-box { margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .qa-question { padding: 15px; background: var(--bg-card); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .qa-answer { padding: 0 15px; max-height: 0; overflow: hidden; transition: all 0.3s ease-out; background: rgba(0,0,0,0.2); color: var(--text-muted); }
+        .qa-answer.open { padding: 15px; max-height: 200px; }
 
         .module-footer {
             margin-top: 40px;
@@ -295,141 +303,271 @@
     <div class="container">
         <nav class="top-nav">
             <a href="../index.html" class="back-link">← Back to Roadmap</a>
-            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 05</span>
+            <span style="font-family: var(--font-code); color: var(--text-muted); font-size: 0.8rem;">Module 06</span>
         </nav>
 
         <header>
             <div class="module-meta">
-                <span class="meta-badge difficulty">Intermediate</span>
-                <span class="meta-badge">⏱ 75 Minutes</span>
-                <span class="meta-badge">Prereq: Module 03</span>
+                <span class="meta-badge difficulty">Beginner → Intermediate</span>
+                <span class="meta-badge">⏱ 60-75 Minutes</span>
+                <span class="meta-badge">Prereq: Module 05</span>
             </div>
             <h1>DNS & Name Resolution</h1>
-            <p style="max-width: 700px;">The Domain Name System (DNS) is the phonebook of the internet. It translates human-friendly names like <code>google.com</code> into machine-ready IP addresses.</p>
+            <p style="max-width: 700px;">The Domain Name System (DNS) is the critical infrastructure that translates human-readable domain names into machine-routable IP addresses. Understanding DNS is essential for network troubleshooting, reconnaissance, and exploitation.</p>
         </header>
 
         <div class="layout-grid">
             <aside class="sidebar">
                 <div class="toc">
                     <h4>On this page</h4>
-                    <a href="#how-it-works">1. How DNS Works</a>
-                    <a href="#records">2. DNS Record Types</a>
-                    <a href="#resolution">3. Resolution Process</a>
-                    <a href="#tooling">4. Recon Tooling</a>
-                    <a href="#attacks">5. DNS Attack Vectors</a>
+                    <a href="#what-is-dns">1. What Is DNS?</a>
+                    <a href="#resolution-process">2. Resolution Process</a>
+                    <a href="#hierarchy">3. DNS Hierarchy</a>
+                    <a href="#record-types">4. Record Types</a>
+                    <a href="#recursive-iterative">5. Recursive vs Iterative</a>
+                    <a href="#cache-hosts">6. Cache & Hosts File</a>
+                    <a href="#tools">7. Tools & Commands</a>
+                    <a href="#attacks">8. Attacks & Security</a>
+                    <a href="#troubleshooting">9. Troubleshooting</a>
+                    <a href="#cybersecurity">10. Cybersecurity App</a>
+                    <a href="#lab">11. Practice Lab</a>
                     <a href="#recap">📌 Module Recap</a>
                 </div>
             </aside>
 
             <main>
-                <!-- 1. HOW DNS WORKS -->
-                <section id="how-it-works">
-                    <h2>1. How DNS Works</h2>
-                    <p>DNS is a distributed, hierarchical database. No single server holds all the data. Instead, authority is delegated down a chain.</p>
-                    
-                    <div class="dns-flow">
-                        <div class="dns-node" style="border-color: var(--purple);">Root Servers (.)</div>
-                        <div class="dns-arrow">↓</div>
-                        <div class="dns-node" style="border-color: var(--warning);">TLD Servers (.com, .org)</div>
-                        <div class="dns-arrow">↓</div>
-                        <div class="dns-node" style="border-color: var(--accent);">Authoritative Servers (google.com)</div>
-                    </div>
+                <!-- 1. WHAT IS DNS -->
+                <section id="what-is-dns">
+                    <h2>1. What Is DNS?</h2>
+                    <p>DNS stands for <strong>Domain Name System</strong>. It serves as the phonebook of the Internet. Humans access information online through domain names like <code>google.com</code> or <code>thevoid.io</code>. Web browsers, however, interact through Internet Protocol (IP) addresses.</p>
+                    <p>DNS translates domain names to IP addresses so browsers can load Internet resources. Without DNS, you would have to type <code>142.250.190.46</code> instead of <code>google.com</code>.</p>
+                </section>
 
-                    <div class="hackers-note">
-                        <h4>🔍 Recursive vs. Iterative</h4>
-                        <p><strong>Recursive:</strong> Your computer asks the Resolver (e.g., 8.8.8.8) to do all the work and just come back with the answer.<br>
-                        <strong>Iterative:</strong> The Resolver asks each level of the hierarchy itself until it finds the target.</p>
+                <!-- 2. RESOLUTION PROCESS -->
+                <section id="resolution-process">
+                    <h2>2. How Name Resolution Works</h2>
+                    <p>When you type a URL into your browser, a specific sequence of checks occurs to find the correct IP address:</p>
+                    
+                    <ol>
+                        <li><strong>Request:</strong> User types <code>example.com</code>.</li>
+                        <li><strong>Browser Cache:</strong> The browser checks if it has seen this domain recently.</li>
+                        <li><strong>OS Cache & Hosts:</strong> The OS checks its own cache and the local <code>hosts</code> file.</li>
+                        <li><strong>Resolver Query:</strong> If not found locally, the query is sent to a Recursive Resolver (usually provided by your ISP or Google's 8.8.8.8).</li>
+                        <li><strong>Root Server:</strong> The resolver asks the Root Server (.).</li>
+                        <li><strong>TLD Server:</strong> The Root directs the resolver to the Top-Level Domain (TLD) server (e.g., .com).</li>
+                        <li><strong>Authoritative Server:</strong> The TLD server directs to the Authoritative Name Server responsible for the specific domain.</li>
+                        <li><strong>Response:</strong> The Authoritative Server returns the final IP address to the resolver, which passes it to your computer.</li>
+                    </ol>
+
+                    <div class="mini-lab">
+                        <h4>🧪 DNS Resolution Visualizer</h4>
+                        <p>See how a domain request travels from your device to root and authoritative servers.</p>
+                        <a href="../sim/dns-resolution.html" class="btn-sim">Launch DNS Visualizer</a>
                     </div>
                 </section>
 
-                <!-- 2. RECORD TYPES -->
-                <section id="records">
-                    <h2>2. DNS Record Types</h2>
-                    <p>DNS doesn't just store IPs. It stores various records that define how a domain behaves.</p>
+                <!-- 3. DNS HIERARCHY -->
+                <section id="hierarchy">
+                    <h2>3. DNS Hierarchy</h2>
+                    <p>DNS uses a distributed, hierarchical structure. No single server holds the entire internet's directory. Authority is delegated down a chain.</p>
+
+                    <div class="dns-flow">
+                        <div class="dns-node" style="border-color: var(--purple);">Root DNS Servers (.)</div>
+                        <div class="dns-arrow">↓</div>
+                        <div class="dns-node" style="border-color: var(--warning);">TLD Servers (.com, .org, .net)</div>
+                        <div class="dns-arrow">↓</div>
+                        <div class="dns-node" style="border-color: var(--accent);">Authoritative Servers (example.com)</div>
+                    </div>
+                    
+                    <p><strong>Root Servers:</strong> There are 13 logical root server sets worldwide. They are the starting point for all recursive searches.<br>
+                    <strong>TLD Servers:</strong> Maintain information for all domain names sharing a common domain extension (like .com).<br>
+                    <strong>Authoritative Servers:</strong> Holds the actual DNS records for a specific domain.</p>
+                </section>
+
+                <!-- 4. RECORD TYPES -->
+                <section id="record-types">
+                    <h2>4. DNS Record Types Explained</h2>
+                    <p>DNS is not just about mapping names to IPs. Different "Record Types" define different functions for a domain.</p>
 
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr><th>Record</th><th>Description</th><th>Purpose</th></tr>
+                                <tr><th>Record</th><th>Full Name</th><th>Purpose</th></tr>
                             </thead>
                             <tbody>
-                                <tr><td><strong>A</strong></td><td>IPv4 Address</td><td>Maps name to IPv4</td></tr>
-                                <tr><td><strong>AAAA</strong></td><td>IPv6 Address</td><td>Maps name to IPv6</td></tr>
-                                <tr><td><strong>CNAME</strong></td><td>Canonical Name</td><td>An alias (points to another domain)</td></tr>
-                                <tr><td><strong>MX</strong></td><td>Mail Exchange</td><td>Directs email to the right server</td></tr>
-                                <tr><td><strong>TXT</strong></td><td>Text Record</td><td>Often used for SPF, DKIM, and Verification</td></tr>
-                                <tr><td><strong>NS</strong></td><td>Name Server</td><td>Identifies authoritative servers for the zone</td></tr>
+                                <tr><td><strong>A</strong></td><td>Address</td><td>Maps a hostname to an IPv4 address (e.g., 192.168.1.1).</td></tr>
+                                <tr><td><strong>AAAA</strong></td><td>Quad A</td><td>Maps a hostname to an IPv6 address.</td></tr>
+                                <tr><td><strong>MX</strong></td><td>Mail Exchange</td><td>Specifies the mail server responsible for accepting email.</td></tr>
+                                <tr><td><strong>CNAME</strong></td><td>Canonical Name</td><td>Aliases one name to another (e.g., www to non-www).</td></tr>
+                                <tr><td><strong>NS</strong></td><td>Name Server</td><td>Delegates a DNS zone to use specific Authoritative Name Servers.</td></tr>
+                                <tr><td><strong>TXT</strong></td><td>Text</td><td>Stores text-based information, often used for SPF/DKIM verification.</td></tr>
                             </tbody>
                         </table>
                     </div>
+
+                    <div class="mini-lab">
+                        <h4>🧪 DNS Record Explorer</h4>
+                        <p>Interact with different record types to see how A, MX, and TXT records differ.</p>
+                        <a href="../sim/dns-record-explorer.html" class="btn-sim">Launch Record Explorer</a>
+                    </div>
                 </section>
 
-                <!-- 3. RESOLUTION PROCESS -->
-                <section id="resolution">
-                    <h2>3. The Resolution Process</h2>
-                    <a href="../sim/dns.html" class="btn-sim">Launch DNS Simulation</a>
-                    <p>When you type a URL, a specific sequence of events occurs to find the IP:</p>
-                    
-                    <ol style="padding-left: 20px; color: var(--text-muted);">
-                        <li><strong>Local Cache:</strong> Check if you've visited recently.</li>
-                        <li><strong>Hosts File:</strong> Check the local <code>/etc/hosts</code> (Linux) or <code>C:\Windows\System32\drivers\etc\hosts</code> (Win).</li>
-                        <li><strong>Recursive Resolver:</strong> Ask your ISP or a public resolver (Cloudflare/Google).</li>
-                        <li><strong>The Hierarchy:</strong> The resolver queries Root, TLD, and Authoritative servers.</li>
-                    </ol>
+                <!-- 5. RECURSIVE VS ITERATIVE -->
+                <section id="recursive-iterative">
+                    <h2>5. Recursive vs Iterative Queries</h2>
+                    <div class="hackers-note">
+                        <h4>🔍 The Distinction</h4>
+                        <p><strong>Recursive Query:</strong> "I need the IP for google.com. Go find it and don't come back until you have the answer." (Client to Resolver).</p>
+                        <p><strong>Iterative Query:</strong> "I need the IP. If you don't have it, tell me who I should ask next." (Resolver to Root/TLD Servers).</p>
+                    </div>
+                    <p>Most client devices perform recursive queries, relying on the ISP's DNS resolver to do the heavy lifting of iterative queries across the internet.</p>
+                </section>
+
+                <!-- 6. LOCAL CACHE & HOSTS -->
+                <section id="cache-hosts">
+                    <h2>6. Local DNS Cache & Hosts File</h2>
+                    <p>Before checking the network, your OS checks two local sources.</p>
+
+                    <h3>The Hosts File</h3>
+                    <p>A manual override file that maps hostnames to IP addresses. It takes precedence over DNS.</p>
+                    <ul>
+                        <li><strong>Linux/Mac:</strong> <code>/etc/hosts</code></li>
+                        <li><strong>Windows:</strong> <code>C:\Windows\System32\drivers\etc\hosts</code></li>
+                    </ul>
 
                     <div class="security-check">
                         <div class="sc-content">
-                            <h4>🛡️ The "Hosts" File Trick</h4>
-                            <p>Hackers often modify the local <code>hosts</code> file during an infection to redirect <code>bankofamerica.com</code> to their own malicious IP, bypassing DNS entirely.</p>
+                            <h4>⚠️ Security Risk: Hosts File</h4>
+                            <p>Malware often modifies the <code>hosts</code> file to redirect legitimate banking URLs to a malicious IP address controlled by the attacker. This bypasses DNS entirely.</p>
                         </div>
                     </div>
                 </section>
 
-                <!-- 4. TOOLING -->
-                <section id="tooling">
-                    <h2>4. Recon Tooling: nslookup & dig</h2>
-                    <p>Pentesters use these tools to map out a target's infrastructure before an attack.</p>
+                <!-- 7. TOOLS & COMMANDS -->
+                <section id="tools">
+                    <h2>7. DNS Tools & Practical Commands</h2>
+                    <p>For troubleshooting and reconnaissance, <code>nslookup</code> and <code>dig</code> are the industry standards.</p>
 
-                    <h3>Using nslookup</h3>
+                    <h3>nslookup (Windows/Linux)</h3>
                     <div class="terminal">
                         <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
                         <span class="cmd">C:\></span> nslookup google.com<br>
                         Server:  UnKnown<br>
-                        Address:  192.168.1.1<br>
+                        Address:  192.168.1.1<br><br>
                         Non-authoritative answer:<br>
                         Name:    google.com<br>
                         Address:  142.250.190.46
                     </div>
 
-                    <h3>Using dig (The Pro Choice)</h3>
+                    <h3>dig (Linux/macOS) - The Professional Choice</h3>
+                    <p><code>dig</code> (Domain Information Groper) provides more detailed information than nslookup.</p>
+                    
                     <div class="terminal">
                         <div class="terminal-header"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
                         <span class="cmd">root@kali:~#</span> dig google.com MX +short<br>
-                        10 smtp.google.com.<br>
-                        <span style="color: #64748b;">// This finds the mail servers for the target instantly.</span>
+                        10 smtp.google.com.<br><br>
+                        <span class="cmd">root@kali:~#</span> dig google.com TXT +short<br>
+                        "v=spf1 include:_spf.google.com ~all"
                     </div>
+                    
+                    <p>The <code>+short</code> flag keeps the output clean. The query type (MX, TXT, A) tells dig specifically what record to look for.</p>
+                </section>
+
+                <!-- 8. ATTACKS -->
+                <section id="attacks">
+                    <h2>8. DNS Attacks & Security Risks</h2>
+                    <p>Because DNS was designed for reliability rather than security, it is a frequent target.</p>
+
+                    <h3 style="color: var(--danger); font-size: 1.1rem;">DNS Cache Poisoning (Spoofing)</h3>
+                    <p>Attackers corrupt the cache of a DNS resolver, inserting a fake record. When users request <code>bank.com</code>, they are sent to the attacker's IP instead.</p>
+
+                    <h3 style="color: var(--danger); font-size: 1.1rem;">DNS Amplification (DDoS)</h3>
+                    <p>Attackers send small queries to open DNS servers with a spoofed source IP (the victim's). The server replies with a large response to the victim, overwhelming them.</p>
+
+                    <h3 style="color: var(--danger); font-size: 1.1rem;">DNS Tunneling</h3>
+                    <p>Encapsulating other protocols (like SSH or HTTP) inside DNS packets to bypass firewalls or exfiltrate data from a compromised internal network.</p>
 
                     <div class="mini-lab">
-                        <h4>🧪 Mini Exercise</h4>
-                        <p>Try to find the <strong>TXT</strong> records for <code>github.com</code> using <code>dig github.com TXT</code>. You will likely see "verification" strings for various services they use.</p>
+                        <h4>🧪 DNS Spoofing Demo</h4>
+                        <p>Simulate a Man-in-the-Middle attack where DNS responses are forged to redirect traffic.</p>
+                        <a href="../sim/dns-spoof-demo.html" class="btn-sim">Launch Spoofing Demo</a>
                     </div>
                 </section>
 
-                <!-- 5. ATTACK VECTORS -->
-                <section id="attacks">
-                    <h2>5. DNS Attack Vectors</h2>
-                    <p>DNS is often unprotected and high-trust, making it a favorite for attackers.</p>
+                <!-- 9. TROUBLESHOOTING -->
+                <section id="troubleshooting">
+                    <h2>9. Real-World Troubleshooting</h2>
+                    <p>If a website fails to load, use this checklist to determine if it's a DNS issue:</p>
+                    <ul style="border-left: 2px solid var(--accent); padding-left: 20px;">
+                        <li><strong>Check Connectivity:</strong> Can you ping <code>8.8.8.8</code>? If yes, you have internet.</li>
+                        <li><strong>Ping by Name:</strong> Try <code>ping google.com</code>. If it says "Could not find host," it's likely a DNS failure.</li>
+                        <li><strong>Flush Cache:</strong> 
+                            <br>Windows: <code>ipconfig /flushdns</code>
+                            <br>Linux: <code>sudo systemd-resolve --flush-caches</code>
+                        </li>
+                        <li><strong>Change Resolver:</strong> Temporarily set your DNS to <code>8.8.8.8</code> to rule out ISP issues.</li>
+                        <li><strong>Check Hosts:</strong> Ensure the domain isn't hardcoded to a wrong IP in your hosts file.</li>
+                    </ul>
+                </section>
 
-                    <div class="security-check" style="border-color: var(--danger);">
-                        <div class="sc-content">
-                            <h4 style="color: var(--danger);">💀 DNS Poisoning (Spoofing)</h4>
-                            <p>Flooding a resolver with fake entries so that users are sent to a malicious site. This is a classic Man-in-the-Middle technique.</p>
-                        </div>
-                    </div>
+                <!-- 10. CYBERSECURITY APP -->
+                <section id="cybersecurity">
+                    <h2>10. 🛡️ Why DNS Matters in Pentesting</h2>
+                    <p>For ethical hackers, DNS is a treasure trove of information during the Reconnaissance phase.</p>
 
                     <div class="hackers-note">
-                        <h4>📡 DNS Tunneling</h4>
-                        <p>Because DNS traffic is rarely blocked by firewalls, hackers hide data inside DNS queries (TXT records) to exfiltrate passwords or receive commands from a C2 server.</p>
+                        <h4>Subdomain Enumeration</h4>
+                        <p>Finding subdomains (e.g., <code>dev.example.com</code>, <code>admin.example.com</code>) often reveals neglected servers that are more vulnerable than the main website.</p>
+                    </div>
+
+                    <p><strong>Zone Transfers (AXFR):</strong> If a server is misconfigured, an attacker can request a copy of the <em>entire</em> DNS zone, revealing every subdomain and IP in the network. <br>Command: <code>dig axfr example.com @ns1.example.com</code></p>
+                    
+                    <p><strong>TXT Records:</strong> Often contain sensitive info about service providers (AWS, Microsoft 365) or verification tokens that hint at the technology stack.</p>
+                </section>
+
+                <!-- 11. PRACTICE LAB -->
+                <section id="lab">
+                    <h2>11. 🧪 DNS Practice Lab</h2>
+                    <p>Test your knowledge with these scenarios.</p>
+
+                    <div class="qa-box">
+                        <div class="qa-question" onclick="this.nextElementSibling.classList.toggle('open')">
+                            1. What record maps a domain name to an IPv4 address?
+                            <span>▼</span>
+                        </div>
+                        <div class="qa-answer">The <strong>A Record</strong>.</div>
+                    </div>
+
+                    <div class="qa-box">
+                        <div class="qa-question" onclick="this.nextElementSibling.classList.toggle('open')">
+                            2. What is the role of a Root Server in the hierarchy?
+                            <span>▼</span>
+                        </div>
+                        <div class="qa-answer">Root servers are the first step in resolving a domain name. They direct the resolver to the appropriate Top-Level Domain (TLD) server (like .com or .org).</div>
+                    </div>
+
+                    <div class="qa-box">
+                        <div class="qa-question" onclick="this.nextElementSibling.classList.toggle('open')">
+                            3. What does an MX record define?
+                            <span>▼</span>
+                        </div>
+                        <div class="qa-answer">MX (Mail Exchange) records specify which mail servers accept email on behalf of a domain.</div>
+                    </div>
+
+                    <div class="qa-box">
+                        <div class="qa-question" onclick="this.nextElementSibling.classList.toggle('open')">
+                            4. In a recursive query, who performs the full lookup?
+                            <span>▼</span>
+                        </div>
+                        <div class="qa-answer">The <strong>Resolver</strong> (often the ISP's DNS server) performs the full lookup on behalf of the client.</div>
+                    </div>
+
+                    <div class="qa-box">
+                        <div class="qa-question" onclick="this.nextElementSibling.classList.toggle('open')">
+                            5. Why is DNS Cache Poisoning dangerous?
+                            <span>▼</span>
+                        </div>
+                        <div class="qa-answer">It allows attackers to redirect legitimate traffic to malicious servers without the user knowing, often used for phishing credential harvesting.</div>
                     </div>
                 </section>
 
@@ -438,20 +576,21 @@
                     <div class="recap-box" style="background: var(--bg-card); padding: 30px; border-radius: var(--radius); border: 1px solid var(--border);">
                         <h3>📌 Module Recap</h3>
                         <ul style="padding-left: 20px;">
-                            <li style="margin-bottom: 10px;"><strong>DNS</strong> translates names to IPs in a hierarchical fashion.</li>
-                            <li style="margin-bottom: 10px;"><strong>A records</strong> are for IPv4; <strong>MX</strong> for mail; <strong>TXT</strong> for verification.</li>
-                            <li style="margin-bottom: 10px;"><strong>dig</strong> and <strong>nslookup</strong> are essential for infrastructure discovery.</li>
-                            <li style="margin-bottom: 10px;"><strong>DNS Poisoning</strong> and <strong>Tunneling</strong> are critical security risks.</li>
+                            <li><strong>DNS</strong> translates human-readable names to machine-readable IPs.</li>
+                            <li>The system is <strong>hierarchical</strong>: Root (.) → TLD (.com) → Authoritative.</li>
+                            <li><strong>A Records</strong> are for IPv4, <strong>AAAA</strong> for IPv6, and <strong>MX</strong> for email.</li>
+                            <li><strong>Recursive</strong> queries ask for the final answer; <strong>Iterative</strong> queries ask for the next referral.</li>
+                            <li><strong>DNS Poisoning</strong> and <strong>Tunneling</strong> are major security vectors in modern networks.</li>
                         </ul>
                     </div>
                 </section>
 
                 <!-- FOOTER NAV -->
                 <div class="module-footer">
-                    <a href="05-mac-arp.html" class="back-link">← Previous Module</a>
+                    <a href="05-mac-arp.html" class="back-link">← Module 05: MAC & ARP</a>
                     <div>
                         <div style="text-align: right; margin-bottom: 10px; font-size: 0.9rem; color: var(--text-muted);">Next: Routing Fundamentals</div>
-                        <a href="07-routing.html" class="btn-next">Next Module →</a>
+                        <a href="07-routing.html" class="btn-next">Module 07 →</a>
                     </div>
                 </div>
             </main>
@@ -486,7 +625,7 @@
 
         // Progress Tracking
         window.onload = function() {
-            const MODULE_ID = 4; // Unique ID for Phase 6
+            const MODULE_ID = 6; // Module 06 - DNS
             let savedProgress = JSON.parse(localStorage.getItem('voidNetProgress')) || [];
             if(!savedProgress.includes(MODULE_ID)) {
                 savedProgress.push(MODULE_ID);
