@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Void | DNS Spoofing Demo</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons (Phosphor) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-darker: #020617;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #22c55e;
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.4);
+            --safe-glow: rgba(34, 197, 94, 0.4);
+            --border: #334155;
+            --font-body: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: 15px 25px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 100;
+        }
+        
+        .header-title { display: flex; align-items: center; gap: 12px; }
+        .header-title h1 { font-size: 1.2rem; font-weight: 600; }
+
+        .back-btn {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: color 0.2s;
+        }
+        .back-btn:hover { color: var(--text-main); }
+
+        /* --- MAIN LAYOUT --- */
+        .main-container {
+            flex: 1;
+            display: grid;
+            grid-template-rows: 1fr auto;
+            position: relative;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* --- NETWORK MAP --- */
+        .network-map {
+            position: relative;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            width: 100%;
+            height: 100%;
+        }
+
+        .node {
+            position: absolute;
+            width: 120px;
+            padding: 15px;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            z-index: 10;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .node i { font-size: 2rem; color: var(--text-muted); transition: color 0.3s; }
+        .node-label { font-size: 0.8rem; font-weight: 600; color: var(--text-main); text-align: center; }
+        .node-ip { font-family: var(--font-code); font-size: 0.7rem; color: var(--text-muted); opacity: 0.8; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; }
+
+        /* Node Positioning */
+        #node-victim { bottom: 15%; left: 15%; }
+        #node-dns { top: 40%; left: 50%; transform: translate(-50%, -50%); width: 140px; }
+        #node-legit { top: 15%; right: 15%; border-color: rgba(34, 197, 94, 0.3); }
+        #node-attacker { bottom: 15%; right: 15%; border-color: rgba(239, 68, 68, 0.3); opacity: 0.5; filter: grayscale(1); }
+
+        #node-attacker.active { opacity: 1; filter: grayscale(0); border-color: var(--danger); box-shadow: 0 0 25px var(--danger-glow); }
+        #node-attacker.active i { color: var(--danger); }
+
+        /* Connections (SVG) */
+        .connections-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .conn-line {
+            stroke: var(--border);
+            stroke-width: 2;
+            stroke-dasharray: 8;
+            opacity: 0.5;
+            transition: stroke 0.3s;
+        }
+        
+        /* Flow Animations */
+        .conn-line.flow-safe { 
+            stroke: var(--accent); 
+            opacity: 1;
+            animation: dashFlow 1s linear infinite; 
+        }
+        .conn-line.flow-danger { 
+            stroke: var(--danger); 
+            opacity: 1;
+            animation: dashFlow 0.5s linear infinite; 
+        }
+
+        @keyframes dashFlow { 
+            from { stroke-dashoffset: 16; } 
+            to { stroke-dashoffset: 0; } 
+        }
+
+        /* Dynamic Packets */
+        .packet {
+            position: absolute;
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            background: #fff;
+            z-index: 20;
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+        .packet.safe { background: var(--accent); box-shadow: 0 0 10px var(--safe-glow); }
+        .packet.malicious { background: var(--danger); box-shadow: 0 0 10px var(--danger-glow); }
+
+        /* DNS Cache Badge */
+        .cache-display {
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #020617;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: var(--font-code);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            transition: all 0.3s;
+            z-index: 15;
+        }
+        .cache-display.poisoned { color: var(--danger); border-color: var(--danger); box-shadow: 0 0 15px var(--danger-glow); }
+        .cache-display.clean { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 15px var(--safe-glow); }
+
+        /* --- CONTROL PANEL --- */
+        .control-panel {
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 25px;
+            z-index: 50;
+        }
+
+        .controls-left {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .attack-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .attack-toggle:hover { border-color: var(--text-muted); }
+        .attack-toggle.active { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); }
+        
+        .toggle-switch {
+            width: 44px; height: 24px;
+            background: var(--border);
+            border-radius: 20px;
+            position: relative;
+            transition: 0.3s;
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 20px; height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .attack-toggle.active .toggle-switch { background: var(--danger); }
+        .attack-toggle.active .toggle-switch::after { transform: translateX(20px); }
+
+        .btn-group { display: flex; gap: 10px; }
+        
+        .action-btn {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: var(--font-body);
+        }
+        .btn-visit { background: var(--accent); color: #000; flex: 2; }
+        .btn-visit:hover { box-shadow: 0 0 15px var(--safe-glow); transform: translateY(-1px); }
+        .btn-visit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        .btn-reset { background: transparent; border: 1px solid var(--border); color: var(--text-muted); flex: 1; }
+        .btn-reset:hover { border-color: var(--text-main); color: var(--text-main); background: rgba(255,255,255,0.05); }
+
+        /* LOGS */
+        .log-panel {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            height: 160px;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .log-entry { display: flex; gap: 12px; opacity: 0; animation: fadeIn 0.3s forwards; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; }
+        .log-time { color: var(--text-muted); opacity: 0.5; min-width: 65px; font-size: 0.75rem; padding-top: 2px; }
+        .log-msg { flex: 1; }
+        .log-safe { color: var(--accent); }
+        .log-danger { color: var(--danger); }
+        .log-neutral { color: var(--text-muted); }
+        
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* Browser Preview Mockup */
+        .browser-preview {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 280px;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            display: none; 
+            z-index: 200;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: popUp 0.4s forwards cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        @keyframes popUp { to { opacity: 1; transform: translateY(0); } }
+
+        .browser-bar { background: #f1f5f9; padding: 8px 12px; font-size: 0.75rem; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #e2e8f0; color: #475569; }
+        .url-box { background: #fff; padding: 2px 8px; border-radius: 4px; border: 1px solid #cbd5e1; flex: 1; text-align: center; }
+        
+        .browser-content { padding: 30px; text-align: center; height: 160px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #1e293b; }
+        
+        .safe-site { background: #f0fdf4; }
+        .safe-site i { color: #166534; }
+        .safe-site h3 { color: #166534; margin: 10px 0 5px; }
+        
+        .fake-site { background: #fef2f2; }
+        .fake-site i { color: #991b1b; }
+        .fake-site h3 { color: #991b1b; margin: 10px 0 5px; }
+
+        @media (max-width: 900px) {
+            .control-panel { grid-template-columns: 1fr; }
+            #node-victim { left: 5%; bottom: 5%; }
+            #node-attacker { right: 5%; bottom: 5%; }
+            #node-legit { right: 5%; top: 5%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <i class="ph ph-skull" style="font-size: 1.5rem; color: var(--danger);"></i>
+            <h1>DNS Spoofing Demo</h1>
+        </div>
+        <a href="06-dns.html" class="back-link">
+            <i class="ph ph-arrow-left"></i>
+            Back to Module
+        </a>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- VISUALIZATION -->
+        <div class="network-map" id="mapArea">
+            <svg class="connections-layer" id="connSvg"></svg>
+            
+            <!-- Nodes -->
+            <div class="node" id="node-victim">
+                <i class="ph ph-laptop"></i>
+                <div class="node-label">Victim</div>
+                <div class="node-ip">192.168.1.10</div>
+            </div>
+
+            <div class="node" id="node-dns">
+                <div class="cache-display" id="dnsCache">Cache: Empty</div>
+                <i class="ph ph-server"></i>
+                <div class="node-label">DNS Resolver</div>
+                <div class="node-ip">8.8.8.8</div>
+            </div>
+
+            <div class="node" id="node-legit">
+                <i class="ph ph-bank"></i>
+                <div class="node-label">Real Bank</div>
+                <div class="node-ip">93.184.216.34</div>
+            </div>
+
+            <div class="node" id="node-attacker">
+                <i class="ph ph-mask-happy"></i>
+                <div class="node-label">Attacker</div>
+                <div class="node-ip">10.66.66.66</div>
+            </div>
+
+            <!-- Browser Popup -->
+            <div class="browser-preview" id="browserPreview">
+                <div class="browser-bar">
+                    <div style="width:10px; height:10px; border-radius:50%; background:#ef4444"></div>
+                    <div style="width:10px; height:10px; border-radius:50%; background:#f59e0b"></div>
+                    <div style="width:10px; height:10px; border-radius:50%; background:#22c55e"></div>
+                    <div class="url-box"><i class="ph-fill ph-lock-key"></i> bank.com</div>
+                </div>
+                <div class="browser-content" id="browserContent">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLS -->
+        <div class="control-panel">
+            <div class="controls-left">
+                <div class="attack-toggle" id="attackToggle" onclick="toggleAttack()">
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main);">Spoofing Attack</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Intercept & Inject Fake Records</div>
+                    </div>
+                    <div class="toggle-switch"></div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="action-btn btn-visit" id="visitBtn" onclick="visitSite()">
+                        <i class="ph ph-globe"></i> Visit bank.com
+                    </button>
+                    
+                    <button class="action-btn btn-reset" onclick="resetSim()">
+                        <i class="ph ph-trash"></i> Flush
+                    </button>
+                </div>
+            </div>
+
+            <div class="log-panel" id="logPanel">
+                <div class="log-entry">
+                    <span class="log-time">System</span>
+                    <span class="log-msg log-neutral">Simulator ready. Toggle attack to begin.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- STATE --- */
+        let isAttackActive = false;
+        let isSimulating = false;
+        let dnsCache = null; // null, 'clean', or 'poisoned'
+        
+        const nodes = {
+            victim: document.getElementById('node-victim'),
+            dns: document.getElementById('node-dns'),
+            legit: document.getElementById('node-legit'),
+            attacker: document.getElementById('node-attacker')
+        };
+        const browser = document.getElementById('browserPreview');
+
+        /* --- INITIALIZATION --- */
+        window.addEventListener('resize', debounce(drawLines, 100));
+        // Draw lines after initial render
+        setTimeout(drawLines, 50);
+
+        /* --- LOGIC --- */
+        function toggleAttack() {
+            if (isSimulating) return;
+            isAttackActive = !isAttackActive;
+            
+            const btn = document.getElementById('attackToggle');
+            const attackerNode = document.getElementById('node-attacker');
+            
+            if (isAttackActive) {
+                btn.classList.add('active');
+                attackerNode.classList.add('active');
+                log('Attacker', 'Listening for DNS queries...', 'log-danger');
+            } else {
+                btn.classList.remove('active');
+                attackerNode.classList.remove('active');
+                log('System', 'Attack mode disabled.', 'log-neutral');
+            }
+        }
+
+        async function visitSite() {
+            if (isSimulating) return;
+            isSimulating = true;
+            document.getElementById('visitBtn').disabled = true;
+            document.getElementById('attackToggle').style.pointerEvents = 'none';
+            
+            // Hide previous browser result
+            browser.style.display = 'none';
+
+            log('Victim', 'Requesting: bank.com', 'log-neutral');
+
+            // 1. Victim -> DNS
+            flashConnection('victim', 'dns', 'safe');
+            await createAndAnimatePacket(nodes.victim, nodes.dns, 'safe');
+
+            // 2. DNS Processing
+            if (dnsCache) {
+                log('DNS', `Cache Hit: ${dnsCache === 'poisoned' ? 'Spoofed IP' : 'Real IP'} found.`, dnsCache === 'poisoned' ? 'log-danger' : 'log-safe');
+                await wait(500);
+            } else {
+                log('DNS', 'Cache Miss. Querying authoritative servers...', 'log-neutral');
+                
+                if (isAttackActive) {
+                    // ATTACK SCENARIO: Race Condition
+                    log('Attacker', 'DETECTED QUERY! Flooding fake responses...', 'log-danger');
+                    
+                    flashConnection('dns', 'attacker', 'danger'); // Visuals
+                    flashConnection('dns', 'legit', 'safe');
+
+                    // Run two packets simultaneously
+                    // Attacker is faster (800ms) vs Legit (1500ms)
+                    const pAttacker = createAndAnimatePacket(nodes.attacker, nodes.dns, 'malicious', 800);
+                    const pLegit = createAndAnimatePacket(nodes.legit, nodes.dns, 'safe', 1500);
+                    
+                    // Wait for the first one to arrive (Race)
+                    await Promise.race([pAttacker, pLegit]);
+                    
+                    // Attacker wins logic
+                    dnsCache = 'poisoned';
+                    updateCacheDisplay();
+                    log('DNS', 'ACCEPTED response from 10.66.66.66 (Attacker)', 'log-danger');
+                    log('DNS', 'DROPPED late response from 93.184.216.34', 'log-neutral');
+                    
+                    // Wait for legit packet to finish visually before moving on
+                    await wait(800); 
+
+                } else {
+                    // NORMAL SCENARIO
+                    flashConnection('dns', 'legit', 'safe');
+                    await createAndAnimatePacket(nodes.dns, nodes.legit, 'safe');
+                    await wait(200);
+                    await createAndAnimatePacket(nodes.legit, nodes.dns, 'safe');
+                    
+                    dnsCache = 'clean';
+                    updateCacheDisplay();
+                    log('DNS', 'Resolved: 93.184.216.34 (Clean)', 'log-safe');
+                }
+            }
+
+            // 3. DNS -> Victim
+            const responseType = dnsCache === 'poisoned' ? 'malicious' : 'safe';
+            flashConnection('dns', 'victim', responseType === 'malicious' ? 'danger' : 'safe');
+            await createAndAnimatePacket(nodes.dns, nodes.victim, responseType);
+
+            // 4. Browser Result
+            if (dnsCache === 'poisoned') {
+                log('Victim', 'Connecting to 10.66.66.66...', 'log-danger');
+                showBrowser('fake');
+            } else {
+                log('Victim', 'Connecting to 93.184.216.34...', 'log-safe');
+                showBrowser('safe');
+            }
+
+            // Cleanup
+            resetLines();
+            isSimulating = false;
+            document.getElementById('visitBtn').disabled = false;
+            document.getElementById('attackToggle').style.pointerEvents = 'auto';
+        }
+
+        function resetSim() {
+            if(isSimulating) return;
+            dnsCache = null;
+            updateCacheDisplay();
+            browser.style.display = 'none';
+            log('System', 'DNS Cache Flushed.', 'log-neutral');
+            resetLines();
+        }
+
+        /* --- VISUALS --- */
+        function updateCacheDisplay() {
+            const el = document.getElementById('dnsCache');
+            if (!dnsCache) {
+                el.className = 'cache-display';
+                el.textContent = 'Cache: Empty';
+            } else if (dnsCache === 'clean') {
+                el.className = 'cache-display show clean';
+                el.textContent = 'bank.com = 93.184.216.34';
+            } else {
+                el.className = 'cache-display show poisoned';
+                el.textContent = 'bank.com = 10.66.66.66';
+            }
+        }
+
+        function showBrowser(type) {
+            browser.style.display = 'block';
+            const content = document.getElementById('browserContent');
+            
+            if (type === 'safe') {
+                content.className = 'browser-content safe-site';
+                content.innerHTML = `
+                    <i class="ph ph-shield-check" style="font-size: 3rem; margin-bottom: 10px;"></i>
+                    <h3>Real Bank</h3>
+                    <p style="font-size: 0.8rem;">Connection Secure (TLS)</p>
+                `;
+            } else {
+                content.className = 'browser-content fake-site';
+                content.innerHTML = `
+                    <i class="ph ph-warning" style="font-size: 3rem; margin-bottom: 10px;"></i>
+                    <h3>FAKE BANK</h3>
+                    <p style="font-size: 0.8rem;">Credentials Stolen!</p>
+                `;
+            }
+        }
+
+        function createAndAnimatePacket(startNode, endNode, type, duration = 1000) {
+            return new Promise(resolve => {
+                const mapArea = document.getElementById('mapArea');
+                const pkt = document.createElement('div');
+                pkt.className = `packet ${type}`;
+                mapArea.appendChild(pkt);
+
+                const mapRect = mapArea.getBoundingClientRect();
+                const sRect = startNode.getBoundingClientRect();
+                const eRect = endNode.getBoundingClientRect();
+
+                // Positions relative to map container
+                const startX = (sRect.left + sRect.width/2) - mapRect.left;
+                const startY = (sRect.top + sRect.height/2) - mapRect.top;
+                const endX = (eRect.left + eRect.width/2) - mapRect.left;
+                const endY = (eRect.top + eRect.height/2) - mapRect.top;
+
+                // Set initial position
+                pkt.style.left = `${startX - 7}px`; // -7 for half width centering
+                pkt.style.top = `${startY - 7}px`;
+
+                // Force reflow
+                pkt.offsetHeight;
+
+                // Animate
+                pkt.style.transition = `all ${duration}ms linear`;
+                pkt.style.left = `${endX - 7}px`;
+                pkt.style.top = `${endY - 7}px`;
+
+                // Cleanup after animation
+                setTimeout(() => {
+                    pkt.remove();
+                    resolve();
+                }, duration);
+            });
+        }
+
+        function flashConnection(from, to, type) {
+            // Find line ID. Order might vary in ID name so check both.
+            let line = document.getElementById(`line-${from}-${to}`);
+            if (!line) line = document.getElementById(`line-${to}-${from}`);
+            
+            if (line) {
+                line.classList.add(type === 'safe' ? 'flow-safe' : 'flow-danger');
+            }
+        }
+
+        function resetLines() {
+            const lines = document.querySelectorAll('.conn-line');
+            lines.forEach(l => {
+                l.classList.remove('flow-safe', 'flow-danger');
+            });
+        }
+
+        function drawLines() {
+            const svg = document.getElementById('connSvg');
+            svg.innerHTML = ''; // Clear
+            
+            const pairs = [
+                ['node-victim', 'node-dns', 'victim', 'dns'],
+                ['node-dns', 'node-legit', 'dns', 'legit'],
+                ['node-dns', 'node-attacker', 'dns', 'attacker']
+            ];
+
+            const mapRect = document.getElementById('mapArea').getBoundingClientRect();
+
+            pairs.forEach(pair => {
+                const n1 = document.getElementById(pair[0]).getBoundingClientRect();
+                const n2 = document.getElementById(pair[1]).getBoundingClientRect();
+
+                const x1 = (n1.left + n1.width/2) - mapRect.left;
+                const y1 = (n1.top + n1.height/2) - mapRect.top;
+                const x2 = (n2.left + n2.width/2) - mapRect.left;
+                const y2 = (n2.top + n2.height/2) - mapRect.top;
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('class', 'conn-line');
+                
+                // Set ID for animation targeting (e.g., line-victim-dns)
+                line.setAttribute('id', `line-${pair[2]}-${pair[3]}`);
+                
+                if (pair[3] === 'attacker') line.setAttribute('stroke', '#ef4444');
+                
+                svg.appendChild(line);
+            });
+        }
+
+        function log(source, msg, type) {
+            const panel = document.getElementById('logPanel');
+            const now = new Date().toLocaleTimeString('en-US', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = `
+                <span class="log-time">${now}</span>
+                <span class="log-msg ${type}"><strong>[${source}]</strong> ${msg}</span>
+            `;
+            
+            panel.appendChild(div);
+            panel.scrollTop = panel.scrollHeight;
+        }
+
+        function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+        
+        // Helper to stop resize event firing too often
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>
