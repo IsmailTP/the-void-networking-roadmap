@@ -33,6 +33,7 @@
             min-height: 100vh;
             margin: 0;
             padding: 20px;
+            /* Removed padding-right: 280px here */
         }
 
         .container {
@@ -221,6 +222,63 @@
         .give-up-btn:hover {
             color: var(--primary-hover);
         }
+
+        /* ===== Premium Side Card (Clean Version) ===== */
+        .pro-side-panel {
+            position: fixed;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 220px;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(250, 204, 21, 0.25);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 0 25px rgba(250, 204, 21, 0.08);
+            transition: 0.3s ease;
+        }
+
+        .pro-side-panel:hover {
+            box-shadow: 0 0 35px rgba(250, 204, 21, 0.2);
+        }
+
+        .pro-side-panel h2 {
+            color: #facc15;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .pro-side-panel p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .pro-side-panel button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            background: linear-gradient(135deg, #facc15, #f59e0b);
+            color: black;
+            transition: 0.2s ease;
+        }
+
+        .pro-side-panel button:hover {
+            transform: scale(1.05);
+        }
+
+        /* Hide on smaller screens */
+        @media (max-width: 1100px) {
+            .pro-side-panel {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -290,6 +348,16 @@
     <div style="text-align: center; margin-top: 15px;">
         <button class="give-up-btn" onclick="revealAnswers()">Show Answers</button>
     </div>
+</div>
+
+<div class="pro-side-panel">
+    <h2>🚀 Go PRO</h2>
+    <p>
+        Unlock advanced subnet challenges,
+        timed exams, harder CIDR ranges,
+        and performance tracking.
+    </p>
+    <button onclick="goToPro()">Upgrade Free</button>
 </div>
 
 <script>
@@ -443,6 +511,11 @@
         statusMsg.innerText = "Answers revealed.";
         statusMsg.style.color = "var(--text-muted)";
         document.getElementById('check-btn').disabled = true;
+    }
+
+    // New PRO functionality
+    function goToPro() {
+        window.location.href = "04-subnet-practice-pro.html";
     }
 
     // Start the app
