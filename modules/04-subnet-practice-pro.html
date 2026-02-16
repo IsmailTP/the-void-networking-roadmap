@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subnet Labs Pro — Ultimate Edition</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        bg: '#0b0f1a',
+                        panel: 'rgba(22, 30, 45, 0.7)',
+                        accent: '#3b82f6',
+                        accentHover: '#2563eb',
+                        success: '#10b981',
+                        error: '#ef4444',
+                        glass: 'rgba(255, 255, 255, 0.05)',
+                        border: 'rgba(255, 255, 255, 0.1)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+                        'scan': 'scan 4s linear infinite',
+                    },
+                    keyframes: {
+                        shake: {
+                            '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                            '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                            '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                            '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+                        },
+                        scan: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100%)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0b0f1a;
+            color: #e2e8f0;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05) 0%, transparent 25%);
+        }
+
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(22, 30, 45, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transition: all 0.2s ease;
+        }
+
+        .glass-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            outline: none;
+        }
+
+        .glass-input.correct {
+            border-color: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .glass-input.incorrect {
+            border-color: #ef4444;
+            animation: shake 0.5s ease-in-out;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+        }
+
+        /* Scanline Effect */
+        .scanline-container {
+            position: relative;
+            overflow: hidden;
+        }
+        .scanline::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        .scanline::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: rgba(18, 16, 16, 0.1);
+            opacity: 0;
+            z-index: 2;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+
+        /* Topology Grid */
+        .topology-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+        }
+        .topology-cell {
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .topology-cell.active {
+            background: #3b82f6;
+            box-shadow: 0 0 5px #3b82f6;
+        }
+
+        /* Level Progress */
+        .progress-bar-container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 99px;
+            height: 8px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .badge-locked { filter: grayscale(100%) opacity(0.4); }
+        .badge-unlocked { filter: grayscale(0%) opacity(1); box-shadow: 0 0 15px rgba(255,215,0,0.3); }
+
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans selection:bg-accent selection:text-white">
+
+    <header class="sticky top-0 z-50 glass-panel border-b border-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="p-2 bg-accent/10 rounded-lg border border-accent/20">
+                    <i data-lucide="shield" class="w-6 h-6 text-accent"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white">Subnet<span class="text-accent">Labs</span></h1>
+                    <div class="flex items-center gap-2 text-xs text-gray-400">
+                        <span id="app-version">PRO ULTIMATE</span>
+                        <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                        <button id="mode-toggle" class="hover:text-white transition-colors uppercase font-mono tracking-wider text-accent" onclick="app.toggleMode()">Zen Mode</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <div id="timer-container" class="hidden items-center gap-2 font-mono text-xl font-bold text-yellow-400">
+                    <i data-lucide="clock" class="w-5 h-5"></i>
+                    <span id="timer-display">60</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <i data-lucide="flame" class="w-5 h-5 text-orange-500"></i>
+                    <span class="font-mono font-bold text-lg" id="streak-display">0</span>
+                </div>
+
+                <div class="hidden sm:flex items-center gap-2 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                    <i data-lucide="award" class="w-4 h-4 text-purple-400"></i>
+                    <span class="text-sm font-semibold text-purple-300" id="level-badge">Lvl 1</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            
+            <div class="glass-panel rounded-3xl p-8 relative overflow-hidden scanline-container">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <i data-lucide="activity" class="w-32 h-32 text-accent"></i>
+                </div>
+
+                <div class="relative z-10 text-center mb-6">
+                    <p class="text-gray-400 text-sm font-mono tracking-widest uppercase mb-2">Incoming Data Stream</p>
+                    <div class="inline-block relative group">
+                        <div class="absolute -inset-1 bg-gradient-to-r from-accent to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                        <h2 id="question-ip" class="relative text-4xl sm:text-5xl md:text-6xl font-mono font-bold text-white tracking-tighter drop-shadow-lg">
+                            192.168.1.0<span class="text-gray-500">/24</span>
+                        </h2>
+                    </div>
+                </div>
+
+                <div class="relative z-10 grid grid-cols-3 gap-2 md:gap-4 mb-8 bg-white/5 rounded-xl p-4 border border-white/10">
+                    <div class="text-center">
+                        <div class="text-[10px] md:text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Subnet Mask</div>
+                        <div id="info-mask" class="font-mono text-accent font-bold text-sm md:text-base break-all">...</div>
+                    </div>
+                    <div class="text-center border-l border-white/10">
+                        <div class="text-[10px] md:text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Total IPs</div>
+                        <div id="info-total" class="font-mono text-white font-bold text-sm md:text-base">...</div>
+                    </div>
+                    <div class="text-center border-l border-white/10">
+                        <div class="text-[10px] md:text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Usable Hosts</div>
+                        <div id="info-usable" class="font-mono text-white font-bold text-sm md:text-base">...</div>
+                    </div>
+                </div>
+
+                <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="network" class="w-3 h-3"></i> Network Address
+                        </label>
+                        <input type="text" id="input-network" class="glass-input w-full px-4 py-3 rounded-xl font-mono text-lg placeholder-gray-600" placeholder="x.x.x.x">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="play" class="w-3 h-3"></i> First Usable IP
+                        </label>
+                        <input type="text" id="input-first" class="glass-input w-full px-4 py-3 rounded-xl font-mono text-lg placeholder-gray-600" placeholder="x.x.x.x">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="square" class="w-3 h-3"></i> Last Usable IP
+                        </label>
+                        <input type="text" id="input-last" class="glass-input w-full px-4 py-3 rounded-xl font-mono text-lg placeholder-gray-600" placeholder="x.x.x.x">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="radio" class="w-3 h-3"></i> Broadcast Address
+                        </label>
+                        <input type="text" id="input-broadcast" class="glass-input w-full px-4 py-3 rounded-xl font-mono text-lg placeholder-gray-600" placeholder="x.x.x.x">
+                    </div>
+                </div>
+
+                <div class="relative z-10 flex flex-col gap-4">
+                    <div class="flex gap-4">
+                        <button id="btn-validate" onclick="app.validate()" class="flex-1 bg-accent hover:bg-accentHover text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="check-circle" class="w-5 h-5"></i>
+                            Validate Config
+                        </button>
+                        <button onclick="app.newProblem(true)" class="bg-white/5 hover:bg-white/10 text-white p-4 rounded-xl border border-white/10 transition-colors" title="New Problem / Refresh">
+                            <i data-lucide="refresh-cw" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                    <button id="btn-show-answers" onclick="app.revealAnswers()" class="text-gray-500 hover:text-white transition-colors text-sm font-mono underline decoration-dotted decoration-gray-700 hover:decoration-white">
+                        Give Up & Show Answers
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden">
+                <button onclick="app.toggleLogic()" class="w-full flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 transition-colors">
+                    <span class="flex items-center gap-2 font-semibold text-sm uppercase tracking-wide text-gray-300">
+                        <i data-lucide="cpu" class="w-4 h-4 text-accent"></i> Logic Breakdown
+                    </span>
+                    <i data-lucide="chevron-down" id="logic-icon" class="w-4 h-4 transition-transform"></i>
+                </button>
+                
+                <div id="logic-panel" class="hidden p-6 border-t border-white/5 space-y-4 text-sm font-mono text-gray-400">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase mb-1">Binary IP</p>
+                            <div id="logic-bin-ip" class="text-white break-all">...</div>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase mb-1">Binary Mask</p>
+                            <div id="logic-bin-mask" class="text-accent break-all">...</div>
+                        </div>
+                    </div>
+                    <div class="h-px bg-white/10"></div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase mb-1">Magic No (Block)</p>
+                            <p id="logic-magic-no" class="text-white text-lg font-bold">...</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase mb-1">Wildcard Mask</p>
+                            <p id="logic-wildcard" class="text-yellow-500 text-lg font-bold">...</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase mb-1">Network Bits</p>
+                            <p id="logic-net-bits" class="text-blue-400 font-bold">...</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-xs uppercase mb-1">Host Bits</p>
+                            <p id="logic-host-bits" class="text-green-400 font-bold">...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-semibold text-sm uppercase tracking-wide text-gray-400">Topology Viz</h3>
+                    <div class="flex gap-1">
+                        <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                    </div>
+                </div>
+                <div class="aspect-square bg-black/20 rounded-lg p-2 border border-white/5">
+                    <div id="topology-grid" class="topology-grid w-full h-full">
+                        </div>
+                </div>
+                <p class="text-center text-xs text-gray-500 mt-2 font-mono">Active Subnet Density</p>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-gray-400 text-xs font-bold uppercase">Current Level</span>
+                    <span class="text-accent font-mono font-bold" id="xp-text">0 / 1000 XP</span>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-3xl font-bold text-white" id="level-display">Level 1</h2>
+                </div>
+                <div class="progress-bar-container w-full mb-6">
+                    <div id="xp-bar" class="progress-bar-fill" style="width: 0%"></div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white/5 rounded-lg p-3 text-center">
+                        <p class="text-xs text-gray-500 uppercase">Best Streak</p>
+                        <p class="text-xl font-mono font-bold text-white" id="stats-best-streak">0</p>
+                    </div>
+                    <div class="bg-white/5 rounded-lg p-3 text-center">
+                        <p class="text-xs text-gray-500 uppercase">Accuracy</p>
+                        <p class="text-xl font-mono font-bold text-white" id="stats-accuracy">0%</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <h3 class="font-semibold text-sm uppercase tracking-wide text-gray-400 mb-4">Achievements</h3>
+                <div class="flex justify-around">
+                    <div id="badge-first" class="badge-locked flex flex-col items-center gap-2 transition-all duration-500">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-black shadow-lg">
+                            <i data-lucide="star" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[10px] uppercase font-bold text-gray-400">First Blood</span>
+                    </div>
+
+                    <div id="badge-streak" class="badge-locked flex flex-col items-center gap-2 transition-all duration-500">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center text-white shadow-lg">
+                            <i data-lucide="zap" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[10px] uppercase font-bold text-gray-400">10 Streak</span>
+                    </div>
+
+                    <div id="badge-level" class="badge-locked flex flex-col items-center gap-2 transition-all duration-500">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white shadow-lg">
+                            <i data-lucide="crown" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-[10px] uppercase font-bold text-gray-400">Level 5</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer class="border-t border-border py-6 text-center text-gray-500 text-xs font-mono">
+        SUBNET LABS PRO • STANDALONE EDITION • <span class="text-accent">OFFLINE READY</span>
+    </footer>
+
+    <div id="modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden items-center justify-center">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full text-center shadow-2xl transform transition-all scale-100 mx-4">
+            <div class="mb-4">
+                <i data-lucide="timer-off" class="w-16 h-16 text-red-500 mx-auto"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-2">Time's Up!</h2>
+            <p class="text-gray-400 mb-6">You pushed your limits in Blitz Mode.</p>
+            
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-white/5 p-4 rounded-xl">
+                    <div class="text-xs text-gray-500 uppercase">Streak</div>
+                    <div class="text-2xl font-mono font-bold text-white" id="modal-streak">0</div>
+                </div>
+                <div class="bg-white/5 p-4 rounded-xl">
+                    <div class="text-xs text-gray-500 uppercase">Accuracy</div>
+                    <div class="text-2xl font-mono font-bold text-white" id="modal-acc">0%</div>
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="app.closeModal('zen')" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors">Zen Mode</button>
+                <button onclick="app.closeModal('blitz')" class="flex-1 py-3 rounded-xl bg-accent hover:bg-accentHover text-white font-bold transition-colors">Try Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Core Application State ---
+        const state = {
+            currentIP: 0,
+            currentCIDR: 24,
+            solution: {},
+            roundLocked: false, // Prevents validation after showing answers
+            
+            // User Progress
+            xp: 0,
+            level: 1,
+            streak: 0,
+            bestStreak: 0,
+            totalAttempts: 0,
+            correctAttempts: 0,
+            badges: { first: false, streak10: false, level5: false },
+            
+            // Mode
+            mode: 'zen', 
+            timer: 60,
+            timerInterval: null
+        };
+
+        // --- DOM Elements ---
+        const els = {
+            question: document.getElementById('question-ip'),
+            info: {
+                mask: document.getElementById('info-mask'),
+                total: document.getElementById('info-total'),
+                usable: document.getElementById('info-usable')
+            },
+            inputs: {
+                network: document.getElementById('input-network'),
+                broadcast: document.getElementById('input-broadcast'),
+                first: document.getElementById('input-first'),
+                last: document.getElementById('input-last')
+            },
+            btnValidate: document.getElementById('btn-validate'),
+            btnShowAnswers: document.getElementById('btn-show-answers'),
+            stats: {
+                streak: document.getElementById('streak-display'),
+                level: document.getElementById('level-display'),
+                levelBadge: document.getElementById('level-badge'),
+                xpText: document.getElementById('xp-text'),
+                xpBar: document.getElementById('xp-bar'),
+                bestStreak: document.getElementById('stats-best-streak'),
+                accuracy: document.getElementById('stats-accuracy')
+            },
+            badges: {
+                first: document.getElementById('badge-first'),
+                streak: document.getElementById('badge-streak'),
+                level: document.getElementById('badge-level')
+            },
+            logic: {
+                panel: document.getElementById('logic-panel'),
+                icon: document.getElementById('logic-icon'),
+                binIp: document.getElementById('logic-bin-ip'),
+                binMask: document.getElementById('logic-bin-mask'),
+                magicNo: document.getElementById('logic-magic-no'),
+                wildcard: document.getElementById('logic-wildcard'),
+                netBits: document.getElementById('logic-net-bits'),
+                hostBits: document.getElementById('logic-host-bits')
+            },
+            topology: document.getElementById('topology-grid'),
+            timerContainer: document.getElementById('timer-container'),
+            timerDisplay: document.getElementById('timer-display'),
+            modeBtn: document.getElementById('mode-toggle'),
+            modal: {
+                overlay: document.getElementById('modal-overlay'),
+                streak: document.getElementById('modal-streak'),
+                acc: document.getElementById('modal-acc')
+            }
+        };
+
+        // --- Helper Functions (Networking) ---
+        
+        // Convert IP string to Unsigned 32-bit Int with Validation
+        const ipToInt = (ip) => {
+            if(!ip || typeof ip !== 'string') return -1;
+            const parts = ip.trim().split('.');
+            if(parts.length !== 4) return -1;
+            
+            let result = 0;
+            for(let i=0; i<4; i++) {
+                const num = parseInt(parts[i], 10);
+                if(isNaN(num) || num < 0 || num > 255) return -1;
+                result = (result << 8) + num;
+            }
+            return result >>> 0;
+        };
+
+        // Convert Unsigned 32-bit Int to IP string
+        const intToIp = (int) => [
+            (int >>> 24) & 255,
+            (int >>> 16) & 255,
+            (int >>> 8) & 255,
+            int & 255
+        ].join('.');
+
+        // Convert Int to Binary String (dotted)
+        const intToBin = (int) => {
+            let bin = (int >>> 0).toString(2).padStart(32, '0');
+            return bin.match(/.{1,8}/g).join('.');
+        }
+
+        // --- Core Logic ---
+
+        const app = {
+            init: () => {
+                app.loadProgress();
+                app.renderStats();
+                app.renderTopologyGrid();
+                app.newProblem();
+                
+                // Event Listeners
+                document.addEventListener('keydown', (e) => {
+                    // Check if modal is open or round is locked
+                    if(!els.modal.overlay.classList.contains('hidden')) return;
+
+                    if (e.key === 'Enter') {
+                        if(!state.roundLocked) app.validate();
+                    }
+                    if (e.key === ' ' && e.target.tagName !== 'INPUT') {
+                        e.preventDefault(); 
+                        app.newProblem(true);
+                    }
+                });
+                
+                lucide.createIcons();
+            },
+
+            generateIP: () => {
+                const oct1 = Math.floor(Math.random() * 223) + 1;
+                const oct2 = Math.floor(Math.random() * 256);
+                const oct3 = Math.floor(Math.random() * 256);
+                const oct4 = Math.floor(Math.random() * 256);
+                return `${oct1}.${oct2}.${oct3}.${oct4}`;
+            },
+
+            newProblem: (manualSkip = false) => {
+                const ipStr = app.generateIP();
+                const cidr = Math.floor(Math.random() * (30 - 12 + 1)) + 12; // /12 to /30
+                
+                state.currentIP = ipToInt(ipStr);
+                state.currentCIDR = cidr;
+                state.roundLocked = false;
+
+                // Calculate Answers
+                const mask = (-1 << (32 - cidr)) >>> 0;
+                const network = (state.currentIP & mask) >>> 0;
+                const broadcast = (network | ~mask) >>> 0;
+                const first = (network + 1) >>> 0;
+                const last = (broadcast - 1) >>> 0;
+                const totalHosts = Math.pow(2, (32 - cidr));
+                const usableHosts = totalHosts - 2;
+
+                state.solution = {
+                    network: network,
+                    broadcast: broadcast,
+                    first: first,
+                    last: last,
+                    hosts: usableHosts,
+                    maskInt: mask,
+                    maskStr: intToIp(mask)
+                };
+
+                // UI Reset
+                els.question.innerHTML = `${ipStr}<span class="text-gray-500">/${cidr}</span>`;
+                
+                // Reset Inputs
+                Object.values(els.inputs).forEach(inp => {
+                    inp.value = '';
+                    inp.classList.remove('correct', 'incorrect', 'shake-anim');
+                    inp.disabled = false;
+                });
+                els.inputs.network.focus();
+                
+                // Re-enable Buttons
+                els.btnValidate.disabled = false;
+                els.btnShowAnswers.disabled = false;
+
+                // Populate Info Grid Upfront
+                els.info.mask.innerText = state.solution.maskStr;
+                els.info.total.innerText = totalHosts.toLocaleString();
+                els.info.usable.innerText = usableHosts.toLocaleString();
+
+                app.updateLogicPanel();
+                app.animateTopology(cidr);
+            },
+
+            revealAnswers: () => {
+                // Fill Inputs
+                els.inputs.network.value = intToIp(state.solution.network);
+                els.inputs.broadcast.value = intToIp(state.solution.broadcast);
+                els.inputs.first.value = intToIp(state.solution.first);
+                els.inputs.last.value = intToIp(state.solution.last);
+
+                // Lock down UI
+                Object.values(els.inputs).forEach(inp => {
+                    inp.classList.add('correct'); // Visual feedback
+                    inp.classList.remove('incorrect');
+                    inp.disabled = true; // Lock input
+                });
+
+                els.btnValidate.disabled = true;
+                els.btnShowAnswers.disabled = true;
+                
+                // State Lock
+                state.roundLocked = true;
+                
+                // Streak reset logic could go here if "Giving Up" counts as a loss
+                state.streak = 0;
+                app.renderStats();
+            },
+
+            validate: () => {
+                if(state.roundLocked) return;
+
+                // Get raw values
+                const rawInputs = {
+                    network: els.inputs.network.value.trim(),
+                    broadcast: els.inputs.broadcast.value.trim(),
+                    first: els.inputs.first.value.trim(),
+                    last: els.inputs.last.value.trim()
+                };
+
+                // Convert to Ints for lenient validation
+                const user = {
+                    network: ipToInt(rawInputs.network),
+                    broadcast: ipToInt(rawInputs.broadcast),
+                    first: ipToInt(rawInputs.first),
+                    last: ipToInt(rawInputs.last)
+                };
+
+                const sol = state.solution;
+                let allCorrect = true;
+
+                const check = (inputEl, isCorrect) => {
+                    inputEl.classList.remove('correct', 'incorrect', 'shake-anim');
+                    if(isCorrect) {
+                        inputEl.classList.add('correct');
+                    } else {
+                        inputEl.classList.add('incorrect');
+                        void inputEl.offsetWidth; 
+                        allCorrect = false;
+                    }
+                };
+
+                check(els.inputs.network, user.network === sol.network);
+                check(els.inputs.broadcast, user.broadcast === sol.broadcast);
+                check(els.inputs.first, user.first === sol.first);
+                check(els.inputs.last, user.last === sol.last);
+
+                state.totalAttempts++;
+                if (allCorrect) {
+                    state.correctAttempts++;
+                    app.handleSuccess();
+                } else {
+                    app.handleFailure();
+                }
+                
+                app.saveProgress();
+                app.renderStats();
+            },
+
+            handleSuccess: () => {
+                const xpGain = 150;
+                state.xp += xpGain;
+                state.streak++;
+                if(state.streak > state.bestStreak) state.bestStreak = state.streak;
+
+                const xpNeeded = state.level * 1000;
+                if(state.xp >= xpNeeded) {
+                    state.level++;
+                    state.xp = state.xp - xpNeeded;
+                }
+
+                if (!state.badges.first) state.badges.first = true;
+                if (state.streak >= 10 && !state.badges.streak10) state.badges.streak10 = true;
+                if (state.level >= 5 && !state.badges.level5) state.badges.level5 = true;
+
+                Object.values(els.inputs).forEach(inp => inp.disabled = true);
+                state.roundLocked = true;
+
+                if(state.mode === 'blitz') {
+                    setTimeout(() => app.newProblem(), 800);
+                }
+            },
+
+            handleFailure: () => {
+                state.streak = 0;
+            },
+
+            // --- Game Modes ---
+
+            toggleMode: () => {
+                if(state.mode === 'zen') {
+                    state.mode = 'blitz';
+                    els.modeBtn.innerText = "BLITZ MODE";
+                    els.modeBtn.classList.add('text-red-500', 'animate-pulse');
+                    els.timerContainer.classList.remove('hidden');
+                    els.timerContainer.classList.add('flex');
+                    app.startTimer();
+                } else {
+                    state.mode = 'zen';
+                    els.modeBtn.innerText = "ZEN MODE";
+                    els.modeBtn.classList.remove('text-red-500', 'animate-pulse');
+                    els.timerContainer.classList.add('hidden');
+                    els.timerContainer.classList.remove('flex');
+                    clearInterval(state.timerInterval);
+                }
+                app.newProblem();
+            },
+
+            startTimer: () => {
+                state.timer = 60;
+                els.timerDisplay.innerText = state.timer;
+                clearInterval(state.timerInterval);
+                
+                state.timerInterval = setInterval(() => {
+                    state.timer--;
+                    els.timerDisplay.innerText = state.timer;
+                    if(state.timer <= 0) {
+                        clearInterval(state.timerInterval);
+                        app.showModal();
+                    }
+                }, 1000);
+            },
+
+            showModal: () => {
+                const acc = state.totalAttempts === 0 ? 0 : Math.round((state.correctAttempts / state.totalAttempts) * 100);
+                els.modal.streak.innerText = state.streak;
+                els.modal.acc.innerText = acc + '%';
+                els.modal.overlay.classList.remove('hidden');
+                els.modal.overlay.classList.add('flex');
+            },
+
+            closeModal: (action) => {
+                els.modal.overlay.classList.add('hidden');
+                els.modal.overlay.classList.remove('flex');
+                
+                state.streak = 0; // Reset streak on loss
+                app.renderStats();
+
+                if(action === 'zen') {
+                    if(state.mode === 'blitz') app.toggleMode();
+                } else {
+                    app.startTimer();
+                    app.newProblem();
+                }
+            },
+
+            // --- UI Rendering ---
+
+            renderStats: () => {
+                els.stats.streak.innerText = state.streak;
+                els.stats.level.innerText = `Level ${state.level}`;
+                els.stats.levelBadge.innerText = `Lvl ${state.level}`;
+                els.stats.bestStreak.innerText = state.bestStreak;
+                
+                const acc = state.totalAttempts === 0 ? 0 : Math.round((state.correctAttempts / state.totalAttempts) * 100);
+                els.stats.accuracy.innerText = `${acc}%`;
+
+                const xpNeeded = state.level * 1000;
+                const pct = (state.xp / xpNeeded) * 100;
+                els.stats.xpBar.style.width = `${pct}%`;
+                els.stats.xpText.innerText = `${state.xp} / ${xpNeeded} XP`;
+
+                if(state.badges.first) els.badges.first.className = "badge-unlocked flex flex-col items-center gap-2";
+                if(state.badges.streak10) els.badges.streak.className = "badge-unlocked flex flex-col items-center gap-2";
+                if(state.badges.level5) els.badges.level.className = "badge-unlocked flex flex-col items-center gap-2";
+            },
+
+            updateLogicPanel: () => {
+                const binIP = intToBin(state.currentIP);
+                const binMask = intToBin(state.solution.maskInt);
+                
+                els.logic.binIp.innerText = binIP;
+                els.logic.binMask.innerText = binMask;
+                
+                // Correct Magic Number Logic (Block Step)
+                const maskParts = intToIp(state.solution.maskInt).split('.').map(Number);
+                const interestingIndex = maskParts.findIndex(p => p !== 255);
+                const interestingValue = interestingIndex !== -1 ? maskParts[interestingIndex] : 255;
+                const magicNumber = 256 - interestingValue;
+                
+                els.logic.magicNo.innerText = magicNumber;
+
+                // Wildcard Mask
+                const wildcard = (~state.solution.maskInt) >>> 0;
+                els.logic.wildcard.innerText = intToIp(wildcard);
+
+                // Bits
+                els.logic.netBits.innerText = state.currentCIDR;
+                els.logic.hostBits.innerText = 32 - state.currentCIDR;
+            },
+
+            toggleLogic: () => {
+                els.logic.panel.classList.toggle('hidden');
+                els.logic.icon.classList.toggle('rotate-180');
+            },
+
+            // --- Topology ---
+            renderTopologyGrid: () => {
+                els.topology.innerHTML = '';
+                for(let i=0; i<64; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'topology-cell';
+                    els.topology.appendChild(cell);
+                }
+            },
+
+            animateTopology: (cidr) => {
+                const cells = document.querySelectorAll('.topology-cell');
+                cells.forEach(c => c.classList.remove('active'));
+
+                const totalCells = 64;
+                const minCidr = 12;
+                const maxCidr = 30;
+                
+                const scale = (maxCidr - cidr) / (maxCidr - minCidr);
+                const activeCount = Math.max(1, Math.floor(scale * totalCells));
+
+                const indices = Array.from({length: 64}, (_, i) => i);
+                for (let i = indices.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [indices[i], indices[j]] = [indices[j], indices[i]];
+                }
+
+                for(let k=0; k<activeCount; k++) {
+                    setTimeout(() => {
+                        cells[indices[k]].classList.add('active');
+                    }, k * 10);
+                }
+            },
+
+            // --- Persistence ---
+            saveProgress: () => {
+                localStorage.setItem('subnetGymPro_v1', JSON.stringify({
+                    xp: state.xp,
+                    level: state.level,
+                    bestStreak: state.bestStreak,
+                    totalAttempts: state.totalAttempts,
+                    correctAttempts: state.correctAttempts,
+                    badges: state.badges
+                }));
+            },
+
+            loadProgress: () => {
+                const saved = localStorage.getItem('subnetGymPro_v1');
+                if(saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        state.xp = data.xp || 0;
+                        state.level = data.level || 1;
+                        state.bestStreak = data.bestStreak || 0;
+                        state.totalAttempts = data.totalAttempts || 0;
+                        state.correctAttempts = data.correctAttempts || 0;
+                        state.badges = data.badges || { first: false, streak10: false, level5: false };
+                    } catch(e) { console.error('Save file corrupted'); }
+                }
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', app.init);
+    </script>
+</body>
+</html>
